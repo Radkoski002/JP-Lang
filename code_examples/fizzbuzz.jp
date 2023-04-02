@@ -1,0 +1,17 @@
+fizzBuzz(n) {
+    index = 1;
+    while(index <= n) {
+        if(index % 3 == 0 & index % 5 == 0) {
+            print("FizzBuzz");
+        } else if(index % 3 == 0) {
+            print("Fizz");
+        } else if(index % 5 == 0) {
+            print("Buzz");
+        } else {
+            print(index);
+        }
+    }
+    index += 1;
+}
+
+fizzBuzz(100);

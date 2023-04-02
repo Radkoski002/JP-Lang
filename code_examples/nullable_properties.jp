@@ -1,0 +1,11 @@
+student = Student("John", "Doe", 20);
+student_without_age = Student("John", "Doe");
+
+stud_arr = Array(student, student_without_age);
+
+for (stud: stud_arr) {
+    if(!stud?.age) {
+        print("Student doesn't have age");
+    }
+    print(stud?.name, " ", stud?.surname, " ", stud?.age);
+}
