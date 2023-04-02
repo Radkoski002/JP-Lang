@@ -1,3 +1,5 @@
+# Student is a class with name, surname and age properties
+
 student = Student("John", "Doe", 20);
 student_without_age = Student("John", "Doe");
 
@@ -5,7 +7,7 @@ stud_arr = Array(student, student_without_age);
 
 for (stud: stud_arr) {
     if(!stud?.age) {
-        print("Student doesn't have age");
+        print("Student doesn't have age information");
     }
     print(stud?.name, " ", stud?.surname, " ", stud?.age);
 }

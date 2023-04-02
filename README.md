@@ -114,7 +114,11 @@ Wyjątek rzucony w scopie występującym po słowie kluczowym catch musi zostać
 
 `# Komentarz jednoliniowy`
 
-## Tokeny
+## Analiza leksykalna
+
+Analizator leksykalny (Lexer) jest częścią kompilatora odpowiedzialną za podział kodu źródłowego na tokeny. Lexer będzie działał leniwie, czyli będzie odczytywał kod znak po znaku i tworzył tokeny dopiero gdy będzie miał wystarczającą ilość znaków do stworzenia tokena.
+
+### Tokeny
 
 ```python
 class TokenType(Enum):
@@ -189,6 +193,14 @@ class TokenType(Enum):
     T_EOF = 301
 
 ```
+
+## Analiza składniowa
+
+Analizator składniowy (Parser) jest częścią kompilatora odpowiedzialną za sprawdzenie poprawności składni kodu źródłowego. Parser będzie będzie odczytywał tokeny jedne po drugim i tworzył drzewo składniowe.
+
+## Interpreter
+
+Interpreter jest częścią kompilatora odpowiedzialną za wykonanie kodu źródłowego. Interpreter będzie wykonywał kod źródłowy w oparciu o drzewo składniowe.
 
 ## Gramatyka
 
