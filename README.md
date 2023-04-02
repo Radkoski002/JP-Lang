@@ -128,63 +128,65 @@ class TokenType(Enum):
     # --- Functions ---
     T_RETURN = 261
     T_BREAK = 262
+    T_CONTINUE = 263
 
     # --- Statements --- 
-    T_IF = 263
-    T_ELSE = 264
-    T_WHILE = 265
-    T_FOR = 266
+    T_IF = 264
+    T_ELSE = 265
+    T_WHILE = 266
+    T_FOR = 267
 
     # --- Operators --- 
 
     # ------ Arithmetic ------
-    T_PLUS = 267 # +
-    T_MINUS = 268 # -
-    T_MULTIPLY = 269 # *
-    T_DIVIDE = 270 # /
-    T_MODULO = 271 # %
+    T_PLUS = 268 # +
+    T_MINUS = 269 # -
+    T_MULTIPLY = 270 # *
+    T_DIVIDE = 271 # /
+    T_MODULO = 272 # %
 
     # ------ Assignment ------
-    T_ASSIGN = 272 # =
-    T_ASSIGN_PLUS = 273 # +=
-    T_ASSIGN_MINUS = 274 # -=
-    T_ASSIGN_MULTIPLY = 275 # *=
-    T_ASSIGN_DIVIDE = 276 # /=
-    T_ASSIGN_MODULO = 277 # %=
+    T_ASSIGN = 273 # =
+    T_ASSIGN_PLUS = 274 # +=
+    T_ASSIGN_MINUS = 275 # -=
+    T_ASSIGN_MULTIPLY = 276 # *=
+    T_ASSIGN_DIVIDE = 277 # /=
+    T_ASSIGN_MODULO = 278 # %=
 
     # ------ Comparison ------
-    T_GREATER = 278 # >
-    T_LESS = 279 # <
-    T_GREATER_EQUAL = 280 # >=
-    T_LESS_EQUAL = 281 # <=
-    T_EQUAL = 282 # ==
-    T_NOT_EQUAL = 283 # !=
+    T_GREATER = 279 # >
+    T_LESS = 280 # <
+    T_GREATER_EQUAL = 281 # >=
+    T_LESS_EQUAL = 282 # <=
+    T_EQUAL = 283 # ==
+    T_NOT_EQUAL = 284 # !=
 
     # ------ Logic ------
-    T_AND = 284 # &
-    T_OR = 285 # |
+    T_AND = 285 # &
+    T_OR = 286 # |
 
     # ------ Access ------
-    T_ACCESS = 286 # .
-    T_NULLABLE_ACCESS = 287 # ?.
+    T_ACCESS = 287 # .
+    T_NULLABLE_ACCESS = 288 # ?.
 
     # ------ Other ------
-    T_NOT = 288 # !
-    T_REF = 289 # @
+    T_NOT = 289 # !
+    T_REF = 290 # @
 
     # --- Brackets ---
-    T_LEFT_BRACKET = 290 # (
-    T_RIGHT_BRACKET = 291 # )
-    T_LEFT_CURLY_BRACKET = 292 # {
-    T_RIGHT_CURLY_BRACKET = 293 # }
+    T_LEFT_BRACKET = 291 # (
+    T_RIGHT_BRACKET = 292 # )
+    T_LEFT_CURLY_BRACKET = 293 # {
+    T_RIGHT_CURLY_BRACKET = 294 # }
 
     # --- Other --- 
-    T_IDENTIFIER = 294
-    T_SEMICOLON = 295 # ;
-    T_COMMA = 296 # ,
-    T_COLON = 297 # :
-    T_COMMENT = 298 # #
-    T_EOF = 299
+    T_IDENTIFIER = 295
+    T_SEMICOLON = 296 # ;
+    T_COMMA = 297 # ,
+    T_COLON = 298 # :
+    T_COMMENT = 299 # #
+    T_OPTIONAL = 300 # ?
+    T_EOF = 301
 
 ```
 
