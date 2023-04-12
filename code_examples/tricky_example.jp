@@ -1,0 +1,49 @@
+fun(x) {
+    x = 1
+    return 1
+}
+
+fun1(y) {
+    y = 2
+    return 2
+}
+
+main() {
+  b;
+  c;
+  e;
+
+  a = fun(@b) + fun1(@c) * b + e?.arg;
+}
+
+# In this example program will go like that
+#
+# 1. Initialization of b with null
+# 2. Initialization of c with null
+# 3. Initialization of e with null
+# 4. fun1(@c) call
+# 5. c value change to 2
+# 6. fun1 returns 2
+# 7. Evaluate 2 * null 
+# 8. Throw an error because you cant multiply 2 by null
+#
+# A bit modified version:
+
+main() {
+  b = 1;
+  c;
+  e;
+
+  a = fun(@b) + fun1(@c) * b + e?.arg;
+}
+
+# Continuing from point 6:
+#
+# 7. Evaluate 2 * 1
+# 8. fun(@b) call
+# 9. b value change to 1
+# 10. fun1 returns 1
+# 11. Evaluate 1 + 2
+# 12. Access arg property of null
+# 13. Throw an error because null doesn't have arg property
+

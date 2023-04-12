@@ -1,0 +1,19 @@
+addTwoVariables(first, second) {
+    return first + second;
+}
+
+addTwoVariablesByReference(@first, second) {
+    first += second;
+}
+
+addTwoVariablesWithOptionalParameters(first, second?) {
+    if(second == null) {
+        second = 0;
+    }
+    return first + second;
+}
+
+addTwoVariablesWithDefaultParameters(first, second? = 0) {
+    return first + second;
+}
+
