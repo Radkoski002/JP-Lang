@@ -8,4 +8,6 @@ fibonacci(n) {
     }
 }
 
-print(fibonacci(10));
+main() {
+    print(fibonacci(10));
+}

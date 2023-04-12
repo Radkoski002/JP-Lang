@@ -1,13 +1,14 @@
 # Student is a class with name, surname and age properties
+main() {
+    student = Student("John", "Doe", 20);
+    student_without_age = Student("John", "Doe");
 
-student = Student("John", "Doe", 20);
-student_without_age = Student("John", "Doe");
+    stud_arr = Array(student, student_without_age);
 
-stud_arr = Array(student, student_without_age);
-
-for (stud: stud_arr) {
-    if(!stud?.age) {
-        print("Student doesn't have age information");
+    for (stud: stud_arr) {
+        if(stud?.age == null) {
+            print("Student doesn't have age information");
+        }
+        print(stud.name, " ", stud.surname, " ", stud?.age);
     }
-    print(stud?.name, " ", stud?.surname, " ", stud?.age);
 }

@@ -1,14 +1,16 @@
-x = Array(1, 2, 3, 4, 5);
+main() {
+    x = Array(1, 2, 3, 4, 5);
 
-sum = 0;
+    sum = 0;
 
-for(i: x) {
-    sum += i;
-}
+    for(i: x) {
+        sum += i;
+    }
 
-while(true) {
-    sum -= 1;
-    if(sum == 0) {
-        break;
+    while(true) {
+        sum -= 1;
+        if(sum == 0) {
+            break;
+        }
     }
 }

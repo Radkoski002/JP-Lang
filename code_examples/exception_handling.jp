@@ -8,34 +8,36 @@ addOneToPositiveNum(x) {
     return x + 1;
 }
 
-try {
-    print(addOneToPositiveNum(-1));
-} catch {
-    print("Something went wrong...");
-}
-
-try {
-    print(addOneToPositiveNum(-1));
-} catch (Error e) {
-    print("Something went wrong...");
-    print("Error message: ", e?.msg);
-    print("Error arguments: ", e?.arg);
-}
-
-try {
-    print(addOneToPositiveNum(-1));
-} 
-catch (ArgumentError e) {
-    if (e?.arg typeof int) {
-        print(addOneToPositiveNum(e?.arg * -1));
+main(){
+    try {
+        print(addOneToPositiveNum(-1));
+    } catch {
+        print("Something went wrong...");
     }
-}
 
-try {
-    print(addOneToPositiveNum());
-} 
-catch (ArgumentError | TypeError e) {
-    print("There was an error with arguments");
-    print("Error message: ", e?.msg);
-    print("Error arguments: ", e?.arg);
+    try {
+        print(addOneToPositiveNum(-1));
+    } catch (Error e) {
+        print("Something went wrong...");
+        print("Error message: ", e?.msg);
+        print("Error arguments: ", e?.arg);
+    }
+
+    try {
+        print(addOneToPositiveNum(-1));
+    } 
+    catch (ArgumentError e) {
+        if (e?.arg typeof int) {
+            print(addOneToPositiveNum(e?.arg * -1));
+        }
+    }
+
+    try {
+        print(addOneToPositiveNum());
+    } 
+    catch (ArgumentError | TypeError e) {
+        print("There was an error with arguments");
+        print("Error message: ", e?.msg);
+        print("Error arguments: ", e?.arg);
+    }
 }

@@ -55,18 +55,22 @@
 
 ### Operatory i ich priorytety
 
-Priorytety operatorów są od najwyższego do najniższego.
+Priorytety operatorów w wyrażeniach są uporządkowane od najwyższego do najniższego.
 Priorytety operatorów są uzależnione on zakresu w jakim się znajdują.
 
-1. Operator referencji (@)
-2. Operator dostępu do elementu obiektu (., ?.)
+1. Operator dostępu do elementu obiektu (., ?.)
+2. Operator sprawdzenia typu (is)
 3. Operator negacj (!)
 4. Operatory multiplikatywne (\*, /, %)
 5. Operatory adytywne (+, -)
 6. Operatory porównania (==, !=, <, >, <=, >=)
 7. Logiczny AND (&)
 8. Loginczy OR (|)
-9. Operator przypisania (=, +=, -=, *=, /=, %=)
+9. Operator przypisania (=, +=, -=, \*=, /=, %=)
+
+Operatory bez priorytetów:
+
+- Operator referencji (@)
 
 ### Instrukcje warunkowe
 
@@ -92,7 +96,7 @@ Konstruktor klasy błędu będzie zawierał dwa opcjonalne pola, pierwszym będz
 
 Error message będzie wyglądał mniej więcej tak:
 
-`[ARGUMENT ERROR]` Argument x cannot be negative. Value of x is: -1 in x:y ->  **throw ArgumentError("x cannot be negative", x);**
+`[ARGUMENT ERROR]` Argument x cannot be negative. Value of x is: -1 in x:y -> **throw ArgumentError("x cannot be negative", x);**
 
 ### Wyłapywanie wyjątków
 
@@ -122,10 +126,10 @@ Analizator leksykalny (Lexer) jest częścią kompilatora odpowiedzialną za pod
 
 ```python
 class TokenType(Enum):
-    # --- Literals --- 
+    # --- Literals ---
     T_INT_LITERAL = 256
     T_FLOAT_LITERAL = 257
-    T_STRING_LITERAL = 258 
+    T_STRING_LITERAL = 258
     T_BOOL_LITERAL = 259
     T_NULL_LITERAL = 260
 
@@ -134,13 +138,13 @@ class TokenType(Enum):
     T_BREAK = 262
     T_CONTINUE = 263
 
-    # --- Statements --- 
+    # --- Statements ---
     T_IF = 264
     T_ELSE = 265
     T_WHILE = 266
     T_FOR = 267
 
-    # --- Operators --- 
+    # --- Operators ---
 
     # ------ Arithmetic ------
     T_PLUS = 268 # +
@@ -183,7 +187,7 @@ class TokenType(Enum):
     T_LEFT_CURLY_BRACKET = 293 # {
     T_RIGHT_CURLY_BRACKET = 294 # }
 
-    # --- Other --- 
+    # --- Other ---
     T_IDENTIFIER = 295
     T_SEMICOLON = 296 # ;
     T_COMMA = 297 # ,
@@ -196,19 +200,24 @@ class TokenType(Enum):
 
 ## Analiza składniowa
 
-Analizator składniowy (Parser) jest częścią kompilatora odpowiedzialną za sprawdzenie poprawności składni kodu źródłowego. Parser będzie będzie odczytywał tokeny jedne po drugim i tworzył drzewo składniowe.
+Analizator składniowy (Parser) jest częścią kompilatora odpowiedzialną za sprawdzenie poprawności składni kodu źródłowego.
+Parser będzie będzie odczytywał tokeny jedne po drugim i tworzył drzewo składniowe.
 
 ## Interpreter
 
-Interpreter jest częścią kompilatora odpowiedzialną za wykonanie kodu źródłowego. Interpreter będzie wykonywał kod źródłowy w oparciu o drzewo składniowe.
+Interpreter jest częścią kompilatora odpowiedzialną za wykonanie kodu źródłowego.
+Interpreter będzie wykonywał kod źródłowy w oparciu o drzewo składniowe.
 
 ## Gramatyka
 
-Dokument zawierający gramatykę języka znajduje się w folderze `grammar`. Znajduje się tam zarówno gramatyka w formacie EBNF jak i graficzna reprezentacja.
+Dokument zawierający gramatykę języka znajduje się w folderze `grammar`.
+Znajduje się tam zarówno gramatyka w formacie EBNF jak i graficzna reprezentacja.
 
 ## Testowanie
 
-Testy będą wykonywane za pomocą biblioteki pytest. Testy będą umieszczone w folderze tests w pliku o nazwie odpowiadającej nazwie pliku z kodem źródłowym. Testy będą wykonywane za pomocą komendy:
+Testy będą wykonywane za pomocą biblioteki pytest.
+Testy będą umieszczone w folderze tests w pliku o nazwie odpowiadającej nazwie pliku z kodem źródłowym.
+Testy będą wykonywane za pomocą komendy:
 
 ```bash
 pytest
@@ -216,7 +225,8 @@ pytest
 
 ## Uruchamianie
 
-Aby uruchomić interpreter należy uruchomić skrypt pythonowy interpretera. Interpreter będzie uruchamiany za pomocą komendy:
+Aby uruchomić interpreter należy uruchomić skrypt pythonowy interpretera.
+Interpreter będzie uruchamiany za pomocą komendy:
 
 ```bash
 ./interpreter.py [plik]
@@ -227,15 +237,6 @@ Aby uruchomić interpreter należy uruchomić skrypt pythonowy interpretera. Int
 Przykładowe programy będą umieszczone w folderze `code_examples`.
 
 ## Przykładowe wbudowane błędy
-
-`[VALUE ERROR]` Value of constant variable cannot be changed in x:y -> **x = 2;**
-
-Dla kodu:
-
-```jp
-x const = 1;
-x = 2;
-```
 
 `[ARGUMENT ERROR]` Mandatory argument of function **addOne(x)** wasn't privided in x:y -> **addOne();**
 
@@ -250,8 +251,6 @@ addOne();
 ```
 
 `[ERROR]` Missing semicolon in x:y -> **x = 2**
-
-`[ERROR]` Const variable wasn't initialized in x:y -> **x const;**
 
 `[ERROR]` Use of unknown variable in x:y -> **x = y + 2;**
 

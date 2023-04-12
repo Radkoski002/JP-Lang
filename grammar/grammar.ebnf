@@ -1,14 +1,33 @@
 @startebnf
 
 (* General *)
-program = {statement};
+program = {function_definition};
 
 instruction_block = '{', {statement}, '}';
-statement = (if_statement | while_statement | iterator_for_statement | return_statement | identifier_or_function_call | variable_initializer | variable_value_change | function_definition | exception_throw_statement | try_catch_statement | "break" | "continue");
+statement = (
+  variable_value_change_statement | 
+  return_statement | 
+  if_statement | 
+  while_statement | 
+  iterator_for_statement | 
+  exception_throw_statement | 
+  try_catch_statement | 
+  "break", ";" | 
+  "continue", ";"
+);
 
 (* Factors *)
-factor = (identifier_or_function_call | number | string | boolean | null);
-identifier_or_function_call = identifier, ['(', [function_call_arguments], ')'], ';';
+factor = (
+  property_accesss |
+  number | 
+  string | 
+  boolean | 
+  null
+);
+
+variable_value_change_statement = property_accesss, [assignment_operator, expression], ";";
+property_accesss = identifier_or_function_call, {access_operator, identifier_or_function_call};
+identifier_or_function_call = identifier, ['(', [arguments], ')'];
 
 (* Expressions *)
 expression = or_expression;
@@ -16,44 +35,39 @@ or_expression = and_expression, {or_operator, and_expression};
 and_expression = comparation_expression, {and_operator, comparation_expression};
 comparation_expression = additive_expression, [comparation_operator, additive_expression];
 additive_expression = multiplicative_expression, {additive_operator, multiplicative_expression};
-multiplicative_expression = base_expresston, {mutliplicative_operator, base_expresstion};
-negetion_expression = [negation_operator], type_check_operator;
-type_check_operator = [type_check_operator], property_access_expression;
-property_accesss_expression = base_expression, {access_operator, identifier};
+multiplicative_expression = negation_expression, {mutliplicative_operator, negation_expression};
+negation_expression = [negation_operator], type_check_operation;
+type_check_operation = base_expression, [type_check_operator, identifier];
 base_expression = (factor | "(", expression, ")"); 
 
 (* Exception handling *)
-exception_throw_statement = 'throw', error, ';';
+exception_throw_statement = 'throw', identifier_or_function_call, ';';
 try_block = 'try',instruction_block;
-catch_block = 'catch', ['(', error, {or_operator, error}, identifier, ')'],instruction_block;
+catch_block = 'catch', ['(', identifier, {or_operator, identifier}, identifier, ')'], instruction_block;
 try_catch_statement = try_block, catch_block, {catch_block};
 
 (* Loops *)
 while_statement = 'while', '(', expression, ')',instruction_block;
-iterator_for_statement = 'for', '(', identifier, ':', identifier_or_function_call, ')',instruction_block;
+iterator_for_statement = 'for', '(', identifier, ':', expression, ')',instruction_block;
 
 (* Confitional expressions *)
 if_block = 'if', '(', expression, ')',instruction_block;
-else_if_block = 'else', if_block; 
-else_block = 'else' ,instruction_block;
+else_if_block = 'elif', '(', expression, ')',instruction_block'; 
+else_block = 'else', instruction_block;
 
 if_statement = if_block, {else_if_block}, [else_block];
 
 (* Functions *)
-function_definition = identifier, '(', [arguments], ')', instruction_block;
-argument = identifier, ['?', ['=', expression]];
+function_definition = identifier, '(', [params], ')', instruction_block;
+param = identifier, ['?', ['=', factor]];
+params = param, {',', param};
+argument = [reference_operator], expression;
 arguments = argument, {',', argument};
-function_call_argument = [reference_operator], expression;
-function_call_arguments = function_call_argument, {',', function_call_argument};
 
 return_statement = "return", expression, ";";
 
-(* Variables *)
-varialbe_initializer = identifier, [(["const"], '=', expression)], ";";
-variable_value_change = identifier, [arithmetical_operator], '=', expression, ";";
-
 (* Identifier *)
-indentifier = (letter | "_"), {(letter | digit | "_")};
+identifier = (letter | "_"), {(letter | digit | "_")};
 
 (* Literals *)
 string = '"', {(? ASCII char except " ? | '\', escaped_character)}, '"';
@@ -65,13 +79,14 @@ null = "null";
 additive_operator = ('+' | '-');
 mutliplicative_operator = ('*' | '/' | '%');
 comparasion_operator = ('==' | '!=' | '<' | '>' | '<=' | '>=');
+assignment_operator = ('=' | '+=' | '-=' | '*=' | '/=' | '%=');
 or_operator = '|';
 and_operator = '&';
 optional_operator = '?';
 negation_operator = ('!' | '-');
 access_operator = ('.' | '?.');
 reference_operator = '@';
-type_check_operator = 'typeof';
+type_check_operator = 'as';
 
 (* Basics *)
 comment = '#';

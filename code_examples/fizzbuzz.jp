@@ -14,4 +14,6 @@ fizzBuzz(n) {
     index += 1;
 }
 
-fizzBuzz(100);
+main() {
+    fizzBuzz(100);
+}
