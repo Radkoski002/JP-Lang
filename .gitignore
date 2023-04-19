@@ -2,3 +2,7 @@ wymagania.txt
 *.zip
 **/__pycache__/
 /venv
+**/.pytest_cache/
+**/.mypy_cache/
+**/.benchmarks/
+/.vscode/

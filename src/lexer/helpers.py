@@ -35,6 +35,7 @@ keywords: Dict[str, TokenType] = {
     "is": TokenType.T_TYPE_CHECK,
 }
 
+# TODO: Change value to lamda
 maybe_two_char_token: Dict[str, TokenType] = {
     "+": TokenType.T_PLUS,
     "-": TokenType.T_MINUS,
@@ -45,6 +46,7 @@ maybe_two_char_token: Dict[str, TokenType] = {
     "=": TokenType.T_ASSIGN,
     ">": TokenType.T_GREATER,
     "<": TokenType.T_LESS,
+    "?": TokenType.T_OPTIONAL,
 }
 
 two_char_token: Dict[str, TokenType] = {
@@ -57,4 +59,17 @@ two_char_token: Dict[str, TokenType] = {
     "=": TokenType.T_EQUAL,
     ">": TokenType.T_GREATER_EQUAL,
     "<": TokenType.T_LESS_EQUAL,
+}
+
+escaped_chars: Dict[str, str] = {
+    "t": "\t",
+    "r": "\r",
+    "n": "\n",
+    "\\": "\\",
+    "'": "'",
+    '"': '"',
+    "0": "\0",
+    "b": "\b",
+    "f": "\f",
+    "v": "\v",
 }

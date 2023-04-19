@@ -1,13 +1,15 @@
+import io
 import pytest
 
 from lexer.lexer_class import Lexer
 from lexer.token_type_enum import TokenType
-from utils.stream_provider_class import StreamProvider
+from src.utils.error_handler_class import ErrorHandler
 
 
 def test_init():
-    stream_provider = StreamProvider("", False)
-    lexer = Lexer(stream_provider)
+    error_handler = ErrorHandler()
+    with io.StringIO("") as stream_provider:
+        lexer = Lexer(stream_provider, error_handler)
     assert lexer.current_token.type == TokenType.T_UNDEFINED
     assert lexer.current_token.position.line == 1
     assert lexer.current_token.position.column == 1
@@ -22,6 +24,9 @@ def test_init():
         (TokenType.T_FLOAT_LITERAL, "1.1"),
         (TokenType.T_FLOAT_LITERAL, "1.00001"),
         (TokenType.T_STRING_LITERAL, '"string"'),
+        (TokenType.T_STRING_LITERAL, r'"string \n"'),
+        (TokenType.T_STRING_LITERAL, r'"string \t"'),
+        (TokenType.T_STRING_LITERAL, r'"\"string\""'),
         (TokenType.T_RETURN, "return"),
         (TokenType.T_BREAK, "break"),
         (TokenType.T_CONTINUE, "continue"),
@@ -75,9 +80,87 @@ def test_init():
     ],
 )
 def test_if_valid_tokens(input, expected_token):
-    stream_provider = StreamProvider(input, False)
-    lexer = Lexer(stream_provider)
-    lexer.build_next_token()
+    error_handler = ErrorHandler()
+    with io.StringIO(input) as stream_provider:
+        lexer = Lexer(stream_provider, error_handler)
+        lexer.build_next_token()
     assert lexer.current_token.type == expected_token
     assert lexer.current_token.position.line == 1
-    assert lexer.current_token.position.column == len(input) + 1
+    assert lexer.current_token.position.column == 1
+
+
+@pytest.mark.parametrize(
+    "input, expected_value",
+    [
+        (r'"\n"', "\n"),
+        (r'"\r"', "\r"),
+        (r'"\t"', "\t"),
+        (r'"\\"', "\\"),
+        (r'"\'"', "'"),
+        (r'"\""', '"'),
+        (r'"\0"', "\0"),
+        (r'"\b"', "\b"),
+        (r'"\f"', "\f"),
+        (r'"\v"', "\v"),
+        (
+            r'"test \n test \t test \\ test \r test \' test \" test \0 test \b test \f test \v"',
+            "test \n test \t test \\ test \r test ' test \" test \0 test \b test \f test \v",
+        ),
+    ],
+)
+def test_sting_escape(input, expected_value):
+    error_handler = ErrorHandler()
+    with io.StringIO(input) as stream_provider:
+        lexer = Lexer(stream_provider, error_handler)
+        lexer.build_next_token()
+    assert lexer.current_token.type == TokenType.T_STRING_LITERAL
+    assert lexer.current_token.value == expected_value
+
+
+# TODO: Add more tests cases
+
+
+@pytest.mark.parametrize("input", [("1.1.1")])
+def test_error_handling(input):
+    error_handler = ErrorHandler()
+    with io.StringIO(input) as stream_provider:
+        lexer = Lexer(stream_provider, error_handler)
+        lexer.build_next_token()
+    assert input == input
+
+
+# TODO: Add more test cases for position checking
+# TODO: Add test cases for raw strings
+@pytest.mark.parametrize(
+    "input, line, column",
+    [
+        ("", 1, 1),
+        (" ", 1, 2),
+        ("\n", 2, 1),
+        ("a\n", 2, 1),
+        ("\n\n\n", 4, 1),
+        ("a\nb", 2, 2),
+        ("\n\r", 2, 1),
+        ("a\n\r", 2, 1),
+        ("a\n\rb", 2, 2),
+        ("\n\r \n\r \n\r", 4, 1),
+        ("\r\n", 2, 1),
+        ("a\r\n", 2, 1),
+        ("a\r\nb", 2, 2),
+        ("\r\n \r\n \r\n", 4, 1),
+        ("\n \n\r", 2, 4),
+        ("\n \r\n", 2, 4),
+        ("\r\n \n", 2, 3),
+        ("\r\n \n\r", 2, 4),
+        ("\n\r \r\n", 2, 4),
+        ("\n\r \n", 2, 3),
+    ],
+)
+def test_current_position(input, line, column):
+    error_handler = ErrorHandler()
+    with io.StringIO(input) as stream_provider:
+        lexer = Lexer(stream_provider, error_handler)
+        while lexer.build_next_token():
+            pass
+    assert lexer.current_token.position.line == line
+    assert lexer.current_token.position.column == column

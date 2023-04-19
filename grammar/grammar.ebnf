@@ -86,7 +86,7 @@ optional_operator = '?';
 negation_operator = ('!' | '-');
 access_operator = ('.' | '?.');
 reference_operator = '@';
-type_check_operator = 'as';
+type_check_operator = 'is';
 
 (* Basics *)
 comment = '#';
