@@ -35,30 +35,17 @@ keywords: Dict[str, TokenType] = {
     "is": TokenType.T_TYPE_CHECK,
 }
 
-# TODO: Change value to lamda
-maybe_two_char_token: Dict[str, TokenType] = {
-    "+": TokenType.T_PLUS,
-    "-": TokenType.T_MINUS,
-    "*": TokenType.T_MULTIPLY,
-    "/": TokenType.T_DIVIDE,
-    "%": TokenType.T_MODULO,
-    "!": TokenType.T_NOT,
-    "=": TokenType.T_ASSIGN,
-    ">": TokenType.T_GREATER,
-    "<": TokenType.T_LESS,
-    "?": TokenType.T_OPTIONAL,
-}
-
-two_char_token: Dict[str, TokenType] = {
-    "+": TokenType.T_ASSIGN_PLUS,
-    "-": TokenType.T_ASSIGN_MINUS,
-    "*": TokenType.T_ASSIGN_MULTIPLY,
-    "/": TokenType.T_ASSIGN_DIVIDE,
-    "%": TokenType.T_ASSIGN_MODULO,
-    "!": TokenType.T_NOT_EQUAL,
-    "=": TokenType.T_EQUAL,
-    ">": TokenType.T_GREATER_EQUAL,
-    "<": TokenType.T_LESS_EQUAL,
+maybe_two_char_token: Dict[str, tuple] = {
+    "+": ("=", TokenType.T_PLUS, TokenType.T_ASSIGN_PLUS),
+    "-": ("=", TokenType.T_MINUS, TokenType.T_ASSIGN_MINUS),
+    "*": ("=", TokenType.T_MULTIPLY, TokenType.T_ASSIGN_MULTIPLY),
+    "/": ("=", TokenType.T_DIVIDE, TokenType.T_ASSIGN_DIVIDE),
+    "%": ("=", TokenType.T_MODULO, TokenType.T_ASSIGN_MODULO),
+    "!": ("=", TokenType.T_NOT, TokenType.T_NOT_EQUAL),
+    "=": ("=", TokenType.T_ASSIGN, TokenType.T_EQUAL),
+    ">": ("=", TokenType.T_GREATER, TokenType.T_GREATER_EQUAL),
+    "<": ("=", TokenType.T_LESS, TokenType.T_LESS_EQUAL),
+    "?": (".", TokenType.T_OPTIONAL, TokenType.T_NULLABLE_ACCESS),
 }
 
 escaped_chars: Dict[str, str] = {
