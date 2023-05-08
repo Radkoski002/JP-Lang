@@ -12,9 +12,8 @@ def test_init():
     error_handler = ErrorHandler()
     with io.StringIO("") as stream_provider:
         lexer = Lexer(stream_provider, error_handler)
-    assert lexer.current_token.type == TokenType.T_UNDEFINED
-    assert lexer.current_token.position.line == 1
-    assert lexer.current_token.position.column == 1
+    assert lexer.current_position.line == 1
+    assert lexer.current_position.column == 1
 
 
 @pytest.mark.parametrize(
@@ -87,11 +86,11 @@ def test_if_valid_tokens(input, expected_token, expected_value):
     error_handler = ErrorHandler()
     with io.StringIO(input) as stream_provider:
         lexer = Lexer(stream_provider, error_handler)
-        lexer.build_next_token()
-    assert lexer.current_token.type == expected_token
-    assert lexer.current_token.value == expected_value
-    assert lexer.current_token.position.line == 1
-    assert lexer.current_token.position.column == 1
+        token = lexer.build_next_token()
+    assert token.type == expected_token
+    assert token.value == expected_value
+    assert token.position.line == 1
+    assert token.position.column == 1
 
 
 @pytest.mark.parametrize(
@@ -112,17 +111,17 @@ def test_if_valid_tokens(input, expected_token, expected_value):
             "test \n test \t test \\ test \r test ' test \" test \0 test \b test \f test \v",
         ),
         # Non existing escape
-        (r'"\1\2\3\4"', ""),
-        (r'"a\1\2\3\4b"', "ab"),
+        (r'"\1\2\3\4"', "1234"),
+        (r'"a\1\2\3\4b"', "a1234b"),
     ],
 )
 def test_sting_escape(input, expected_value):
     error_handler = ErrorHandler()
     with io.StringIO(input) as stream_provider:
         lexer = Lexer(stream_provider, error_handler)
-        lexer.build_next_token()
-    assert lexer.current_token.type == TokenType.T_STRING_LITERAL
-    assert lexer.current_token.value == expected_value
+        token = lexer.build_next_token()
+    assert token.type == TokenType.T_STRING_LITERAL
+    assert token.value == expected_value
 
 
 @pytest.mark.parametrize(
@@ -193,21 +192,18 @@ def test_current_position(input, line, column):
     error_handler = ErrorHandler()
     with io.StringIO(input) as stream_provider:
         lexer = Lexer(stream_provider, error_handler)
-        while lexer.build_next_token():
-            pass
-    assert lexer.current_token.position.line == line
-    assert lexer.current_token.position.column == column
+        while token := lexer.build_next_token():
+            if token.type == TokenType.T_EOF:
+                break
+            continue
+    assert token.position.line == line
+    assert token.position.column == column
 
 
 @pytest.mark.parametrize(
     "input, error_value, error_type",
     [
         # invalid numbers
-        ("01", "0", LEXER_ERROR_TYPES.LEADING_ZEROS),
-        ("007", "00", LEXER_ERROR_TYPES.LEADING_ZEROS),
-        ("00", "00", LEXER_ERROR_TYPES.LEADING_ZEROS),
-        ("00000000", "00000000", LEXER_ERROR_TYPES.LEADING_ZEROS),
-        ("00000000.0000000", "00000000", LEXER_ERROR_TYPES.LEADING_ZEROS),
         ("1.", "1.", LEXER_ERROR_TYPES.INVALID_FLOAT),
         ("11111111.", "11111111.", LEXER_ERROR_TYPES.INVALID_FLOAT),
         (
@@ -227,7 +223,7 @@ def test_current_position(input, line, column):
         ),
         (
             "1" * LEXER_CONFIG.MAX_NUM_LENGTH.value + ".1",
-            "1" * LEXER_CONFIG.MAX_NUM_LENGTH.value + ".",
+            "1" * LEXER_CONFIG.MAX_NUM_LENGTH.value,
             LEXER_ERROR_TYPES.TOO_LONG_NUMBER,
         ),
         # too long id
@@ -242,10 +238,10 @@ def test_current_position(input, line, column):
             LEXER_ERROR_TYPES.TOO_LONG_ID,
         ),
         # unterminated string
-        (r'"asljkfalsk', r'"asljkfalsk', LEXER_ERROR_TYPES.UNTERMINATED_STRING),
+        (r'"asljkfalsk', r"asljkfalsk", LEXER_ERROR_TYPES.UNTERMINATED_STRING),
         (
             r'"asljkfalsk \r test = 1',
-            '"asljkfalsk \r test = 1',
+            "asljkfalsk \r test = 1",
             LEXER_ERROR_TYPES.UNTERMINATED_STRING,
         ),
         # \n with another escaping sign
@@ -279,5 +275,4 @@ def test_error_handling(input, error_value, error_type):
     assert error_handler.has_errors()
     for error in error_handler.errors:
         assert error.type.name == error_type.name
-        assert error.invalid_token.type == TokenType.T_UNDEFINED
-        assert error.invalid_token.value == error_value
+        assert error.invalid_value == error_value

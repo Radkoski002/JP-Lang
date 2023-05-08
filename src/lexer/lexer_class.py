@@ -32,70 +32,46 @@ end_of_line_chars = ["\n", "\r"]
 class Lexer:
     def __init__(self, stream_provider: TextIOWrapper, error_handler: ErrorHandler):
         self.stream_provider: TextIOWrapper = stream_provider
-        self.position: Position = Position(1, 1)
-        self.current_token_position: Position = self.position
+        self.current_position: Position = Position(1, 1)
+        self.current_token_position: Position = self.current_position
         self.current_char: str = self.stream_provider.read(1)
-        self.current_token: Token = Token(TokenType.T_UNDEFINED, "", self.position)
-        self.end_of_line_char: str | None = None
+        self.end_of_line_sequence: str | None = None
         self.error_handler: ErrorHandler = error_handler
 
     def __add_error(self, error_type: LEXER_ERROR_TYPES, token_value: str) -> None:
-        self.current_token = Token(
-            TokenType.T_UNDEFINED, token_value, self.current_token_position
+        self.error_handler.add_error(
+            LexerError(error_type, token_value, self.current_position)
         )
-        self.error_handler.add_error(LexerError(error_type, self.current_token))
         self.__advance()
-
-    def __check_end_of_line(self) -> bool:
-        if self.current_char not in end_of_line_chars:
-            return False
-        escape_char = self.current_char
-        valid_second_char = "\n" if self.current_char == "\r" else "\r"
-        self.__advance()
-        if self.current_char == valid_second_char:
-            escape_char += valid_second_char
-            self.__advance()
-        if not self.end_of_line_char:
-            self.end_of_line_char = escape_char
-        elif self.end_of_line_char != escape_char:
-            self.__add_error(LEXER_ERROR_TYPES.INVALID_EOL, escape_char)
-            return True
-        self.position.line += 1
-        self.position.column = 1
-        return True
 
     def __skip_whitespace(self) -> bool:
-        if self.current_char in end_of_file_chars or not self.current_char.isspace():
+        if not self.current_char.isspace():
             return False
-        while (
-            self.current_char not in end_of_file_chars and self.current_char.isspace()
-        ):
-            if self.__check_end_of_line():
-                pass
-            else:
-                self.__advance()
+        while self.current_char.isspace():
+            self.__advance()
         return True
 
     def __skip_comment(self) -> bool:
         if not self.current_char == "#":
             return False
+        current_line = self.current_position.line
         while (
             self.current_char not in end_of_file_chars
-            and not self.__check_end_of_line()
+            and self.current_position.line == current_line
         ):
             self.__advance()
         return True
 
-    def __try_build_single_char_operator_token(self) -> bool:
+    def __try_build_single_char_operator_token(self) -> Token | None:
         if token_type := single_char_tokens.get(self.current_char):
-            self.current_token = Token(
+            token = Token(
                 token_type,
                 self.current_char,
                 self.current_token_position,
             )
             self.__advance()
-            return True
-        return False
+            return token
+        return None
 
     def __check_if_two_char_token(
         self,
@@ -114,17 +90,16 @@ class Lexer:
         else:
             return Token(one_char_token, prefix, self.current_token_position)
 
-    def __try_build_two_char_operator_token(self) -> bool:
+    def __try_build_two_char_operator_token(self) -> Token | None:
         if params := maybe_two_char_token.get(self.current_char):
             prefix = self.current_char
             self.__advance()
-            self.current_token = self.__check_if_two_char_token(*params, prefix=prefix)
-            return True
-        return False
+            return self.__check_if_two_char_token(*params, prefix=prefix)
+        return None
 
-    def __try_build_indetifier_or_keyword_token(self) -> bool:
+    def __try_build_indetifier_or_keyword_token(self) -> Token | None:
         if not is_identifier_first_char(self.current_char):
-            return False
+            return None
         identifier_or_keyword = [self.current_char]
         self.__advance()
         while is_identifier_char(self.current_char):
@@ -137,121 +112,135 @@ class Lexer:
             self.__advance()
         identifier_or_keyword = "".join(identifier_or_keyword)
         if identifier_or_keyword in keywords:
-            self.current_token = Token(
+            return Token(
                 keywords[identifier_or_keyword],
                 identifier_or_keyword,
                 self.current_token_position,
             )
         else:
-            self.current_token = Token(
+            return Token(
                 TokenType.T_IDENTIFIER,
                 identifier_or_keyword,
                 self.current_token_position,
             )
-        return True
 
-    def __try_build_number_token(self) -> bool:
+    def __try_build_number_token(self) -> Token | None:
         if not is_digit(self.current_char):
             return False
         zero = ord("0")
-        temp_value = 0
-        number_of_digits = 0
-        while is_digit(self.current_char):
-            if (
-                number_of_digits := number_of_digits + 1
-            ) > LEXER_CONFIG.MAX_NUM_LENGTH.value:
-                self.__add_error(LEXER_ERROR_TYPES.TOO_LONG_NUMBER, f"{temp_value}")
-                return True
-            temp_value = 10 * temp_value + ord(self.current_char) - zero
-            self.__advance()
-            if number_of_digits > 1 and 0 < temp_value < 10:
-                self.__add_error(
-                    LEXER_ERROR_TYPES.LEADING_ZEROS,
-                    f"{'0'*(number_of_digits - 1)}",
-                )
-                return True
-        if number_of_digits > 1 and temp_value == 0:
-            self.__add_error(
-                LEXER_ERROR_TYPES.LEADING_ZEROS,
-                f"{'0'*number_of_digits}",
-            )
-            return True
+        temp_value = ord(self.current_char) - zero
+        number_of_digits = 1
+        self.__advance()
+        if temp_value != 0:
+            while is_digit(self.current_char):
+                if (
+                    number_of_digits := number_of_digits + 1
+                ) > LEXER_CONFIG.MAX_NUM_LENGTH.value:
+                    self.__add_error(LEXER_ERROR_TYPES.TOO_LONG_NUMBER, f"{temp_value}")
+                    break
+                temp_value = 10 * temp_value + ord(self.current_char) - zero
+                self.__advance()
+
         if not self.current_char == ".":
-            self.current_token = Token(
+            return Token(
                 TokenType.T_INT_LITERAL, temp_value, self.current_token_position
             )
-            return True
 
         decimal = 0
         self.__advance()
-        if number_of_digits + 1 > LEXER_CONFIG.MAX_NUM_LENGTH.value:
-            self.__add_error(LEXER_ERROR_TYPES.TOO_LONG_NUMBER, f"{temp_value}.")
-            return True
         if not is_digit(self.current_char):
             self.__add_error(LEXER_ERROR_TYPES.INVALID_FLOAT, f"{temp_value}.")
             return True
         while is_digit(self.current_char):
-            if (
-                number_of_digits := number_of_digits + 1
-            ) > LEXER_CONFIG.MAX_NUM_LENGTH.value:
+            if number_of_digits == LEXER_CONFIG.MAX_NUM_LENGTH.value:
                 self.__add_error(
-                    LEXER_ERROR_TYPES.TOO_LONG_NUMBER, f"{temp_value / 10 ** decimal}"
+                    LEXER_ERROR_TYPES.TOO_LONG_NUMBER,
+                    f"{temp_value / 10 ** decimal if decimal != 0 else temp_value}",
                 )
-                return True
+                break
             temp_value = 10 * temp_value + ord(self.current_char) - zero
             decimal += 1
+            number_of_digits += 1
             self.__advance()
         temp_value /= 10**decimal
-        self.current_token = Token(
-            TokenType.T_FLOAT_LITERAL, temp_value, self.current_token_position
-        )
-        return True
+        return Token(TokenType.T_FLOAT_LITERAL, temp_value, self.current_token_position)
 
-    def __try_build_string_token(self) -> bool:
-        if self.current_char != '"':
-            return False
+    def __check_escape_char_in_string(self) -> str:
         self.__advance()
-        temp_string = ""
+        if escaped_char := escaped_chars.get(self.current_char):
+            temp_char = escaped_char
+        else:
+            # TODO Add edge cases handling
+            temp_char = self.current_char
+        return temp_char
+
+    def __try_build_string_token(self) -> Token | None:
+        if self.current_char != '"':
+            return None
+        self.__advance()
+        temp_string = []
+        temp_char = ""
         while self.current_char != '"':
             if self.current_char in end_of_file_chars:
                 self.__add_error(
-                    LEXER_ERROR_TYPES.UNTERMINATED_STRING, f'"{temp_string}'
+                    LEXER_ERROR_TYPES.UNTERMINATED_STRING, "".join(temp_string)
                 )
-                return True
+                break
             if self.current_char == "\\":
-                self.__advance()
-                if escaped_char := escaped_chars.get(self.current_char):
-                    temp_string += escaped_char
+                temp_char = self.__check_escape_char_in_string()
             else:
-                temp_string += self.current_char
+                temp_char = self.current_char
+            temp_string.append(temp_char)
             self.__advance()
-        self.current_token = Token(
-            TokenType.T_STRING_LITERAL, temp_string, self.current_token_position
-        )
         self.__advance()
-        return True
+        return Token(
+            TokenType.T_STRING_LITERAL,
+            "".join(temp_string),
+            self.current_token_position,
+        )
 
-    def __try_build_comment_token(self) -> bool:
+    def __try_build_comment_token(self) -> Token | None:
         if self.current_char != "#":
-            return False
+            return None
+        current_line = self.current_position.line
         temp_comment = [self.current_char]
         self.__advance()
         while (
             self.current_char not in end_of_file_chars
-            and not self.__check_end_of_line()
+            and self.current_position.line == current_line
         ):
             temp_comment.append(self.current_char)
             self.__advance()
-        self.current_token = Token(
+        return Token(
             TokenType.T_COMMENT, "".join(temp_comment), self.current_token_position
         )
-        return True
 
-    def __advance(self) -> None:
-        self.position.column += 1
+    def __go_one_char_forward(self) -> None:
+        self.current_position.column += 1
         self.current_char = self.stream_provider.read(1)
 
-    def __try_build_token(self) -> bool:
+    def __check_end_of_line(self) -> None:
+        escape_char = self.current_char
+        valid_second_char = "\n" if self.current_char == "\r" else "\r"
+        self.__go_one_char_forward()
+        if self.current_char == valid_second_char:
+            escape_char += valid_second_char
+            self.__go_one_char_forward()
+        if not self.end_of_line_sequence:
+            self.end_of_line_sequence = escape_char
+        elif self.end_of_line_sequence != escape_char:
+            self.__add_error(LEXER_ERROR_TYPES.INVALID_EOL, escape_char)
+            return
+        self.current_position.line += 1
+        self.current_position.column = 1
+
+    def __advance(self) -> None:
+        if self.current_char in end_of_line_chars:
+            self.__check_end_of_line()
+        else:
+            self.__go_one_char_forward()
+
+    def __try_build_token(self) -> Token | None:
         return (
             self.__try_build_single_char_operator_token()
             or self.__try_build_two_char_operator_token()
@@ -261,23 +250,26 @@ class Lexer:
             or self.__try_build_comment_token()
         )
 
-    def __check_if_token_is_valid(self) -> bool:
-        self.current_token_position = Position(self.position.line, self.position.column)
+    def __check_if_token_is_valid(self) -> Token:
+        self.current_token_position = Position(
+            self.current_position.line, self.current_position.column
+        )
         if self.current_char in end_of_file_chars:
-            self.current_token = Token(TokenType.T_EOF, "", self.current_token_position)
-            return False
+            return Token(TokenType.T_EOF, "", self.current_token_position)
 
-        if self.__try_build_token():
-            return True
+        if token := self.__try_build_token():
+            return token
         self.__add_error(LEXER_ERROR_TYPES.UNKNOWN_TOKEN, self.current_char)
-        return True
+        return Token(
+            TokenType.T_UNDEFINED, self.current_char, self.current_token_position
+        )
 
-    def build_next_token(self) -> bool:
+    def build_next_token(self) -> Token:
         while self.__skip_whitespace():
             pass
         return self.__check_if_token_is_valid()
 
-    def build_next_token_without_comments(self) -> bool:
+    def build_next_token_without_comments(self) -> Token:
         while self.__skip_whitespace() or self.__skip_comment():
             pass
         return self.__check_if_token_is_valid()

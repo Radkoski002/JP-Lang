@@ -1,5 +1,5 @@
 from enum import Enum
-from lexer.token_type_enum import TokenType
+from utils.position_class import Position
 
 
 class LEXER_ERROR_TYPES(Enum):
@@ -16,11 +16,13 @@ class LexerError(Exception):
     def __init__(
         self,
         error_type: LEXER_ERROR_TYPES,
-        invalid_token: TokenType,
+        invalid_value: str | int | float,
+        position: Position,
     ):
         self.type = error_type
-        self.invalid_token = invalid_token
-        self.message = f"[LEXER ERROR - {error_type.name}]: {error_type.value} at line {invalid_token.position.line}, column {invalid_token.position.column}: {invalid_token.value}"
+        self.invalid_value = invalid_value
+        self.position = position
+        self.message = f"[LEXER ERROR - {error_type.name}]: {error_type.value} at line {position.line}, column {position.column}: {invalid_value}"
         super().__init__(self.message)
 
     def __str__(self):
