@@ -2,7 +2,7 @@ addOneToPositiveNum(x) {
     if(x < 0) {
         throw ArgumentError("Argument x cannot be negative. Value of x is: ", x);
     }
-    if(typeof x != int) {
+    elif(!(x is int)) {
         throw TypeError("Argument x must be of type int. Value of x is: ", x);
     }
     return x + 1;
@@ -27,7 +27,7 @@ main(){
         print(addOneToPositiveNum(-1));
     } 
     catch (ArgumentError e) {
-        if (e?.arg typeof int) {
+        if (e?.arg is int) {
             print(addOneToPositiveNum(e?.arg * -1));
         }
     }

@@ -203,7 +203,7 @@ class Lexer:
         if self.current_char != "#":
             return None
         current_line = self.current_position.line
-        temp_comment = [self.current_char]
+        temp_comment = []
         self.__advance()
         while (
             self.current_char not in end_of_file_chars

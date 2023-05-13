@@ -13,6 +13,9 @@ class TokenType(Enum):
     T_RETURN = "return"
     T_BREAK = "break"
     T_CONTINUE = "continue"
+    T_TRY = "try"
+    T_CATCH = "catch"
+    T_THROW = "throw"
 
     # ------ Statements ------
     T_IF = "if"
