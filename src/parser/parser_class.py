@@ -4,11 +4,13 @@ from parser.statement_classes import *
 from lexer.token_class import Token
 from lexer.token_type_enum import TokenType
 from parser.helpers import INFIX_EXPRESSIONS, token_to_constructor
+from parser.parser_error_class import PARSER_ERROR_TYPES, ParserError
 
 
 class Parser:
     def __init__(self, lexer: Lexer) -> None:
         self.lexer = lexer
+        self.error_handler = lexer.error_handler
         self.current_token: Token = lexer.build_next_token()
 
         self.infix_expression_params: dict[INFIX_EXPRESSIONS] = {
@@ -52,6 +54,11 @@ class Parser:
             "function": function,
             "token": token,
         }
+
+    def __add_error(self, error_type: PARSER_ERROR_TYPES) -> None:
+        self.error_handler.add_error(
+            ParserError(error_type, self.current_token.position)
+        )
 
     def __check_token_type(self, token_type: TokenType) -> bool:
         return self.current_token.type == token_type
@@ -100,7 +107,7 @@ class Parser:
         while token := self.__consume_if_in_list_and_return_token(func_params["token"]):
             right = func_params["function"]()
             if not right:
-                return None
+                self.__add_error(PARSER_ERROR_TYPES.MISSING_EXPRESSION)
             left = token_to_constructor[token.type](left, right)
         return left
 
@@ -117,7 +124,7 @@ class Parser:
             is_reference = self.__consume_if(TokenType.T_REF)
             argument = self.__parse_expression()
             if not argument:
-                return None
+                self.__add_error(PARSER_ERROR_TYPES.MISSING_ARGUMENT)
             arguments.append(Argument(argument, is_reference))
         return arguments
 
@@ -126,7 +133,7 @@ class Parser:
             return None
         arguments = self.__parse_arguments()
         if not self.__consume_if(TokenType.T_RIGHT_BRACKET):
-            return None
+            self.__add_error(PARSER_ERROR_TYPES.MISSING_CLOSING_BRACKET)
         return FunctionCallExpression(name, arguments)
 
     def __parse_identifier_or_function_call(self) -> IExpression:
@@ -146,7 +153,7 @@ class Parser:
             return None
         expression = self.__parse_expression()
         if not self.__consume_if(TokenType.T_RIGHT_BRACKET):
-            return None
+            self.__add_error(PARSER_ERROR_TYPES.MISSING_CLOSING_BRACKET)
         return expression
 
     def __parse_primary_expression(self):
@@ -183,7 +190,7 @@ class Parser:
         if not self.__consume_if(TokenType.T_TYPE_CHECK):
             return expression
         if not self.__check_token_type(TokenType.T_IDENTIFIER):
-            return None
+            self.__add_error(PARSER_ERROR_TYPES.MISSING_TYPE_NAME)
         type_name = IdentifierExpression(self.current_token.value)
         self.__next_token()
         return TypeCheckExpression(expression, type_name)
@@ -194,7 +201,7 @@ class Parser:
         ):
             expression = self.__parse_expression()
             if not expression:
-                return None
+                self.__add_error(PARSER_ERROR_TYPES.MISSING_EXPRESSION)
             if token.type == TokenType.T_MINUS:
                 return NumericNegationExpression(expression)
             if token.type == TokenType.T_NOT:
@@ -223,38 +230,40 @@ class Parser:
 
     def __parse_block_statement(self) -> BlockStatement:
         if not self.__consume_if(TokenType.T_LEFT_CURLY_BRACKET):
-            return None
+            self.__add_error(PARSER_ERROR_TYPES.MISSING_BLOCK_START)
         statements: list[IStatement] = []
         while statement := self.__parse_statement():
             if statement is None:
                 break
             statements.append(statement)
         if not self.__consume_if(TokenType.T_RIGHT_CURLY_BRACKET):
-            return None
+            self.__add_error(PARSER_ERROR_TYPES.MISSING_BLOCK_END)
         return BlockStatement(statements)
 
     def __parse_condition(self) -> IExpression:
         if not self.__consume_if(TokenType.T_LEFT_BRACKET):
-            return None
+            self.__add_error(PARSER_ERROR_TYPES.MISSING_OPENING_BRACKET)
         condition = self.__parse_expression()
         if not condition:
-            return None
+            self.__add_error(PARSER_ERROR_TYPES.MISSING_CONDITIONAL_EXPRESSION)
         if not self.__consume_if(TokenType.T_RIGHT_BRACKET):
-            return None
+            self.__add_error(PARSER_ERROR_TYPES.MISSING_CLOSING_BRACKET)
         return condition
 
     def __parse_if_statement(self) -> IStatement:
-        elif_statements: list[BlockStatement] = []
-        else_statement: BlockStatement = None
         if not self.__consume_if(TokenType.T_IF):
             return None
+        elif_statements: list[BlockStatement] = []
+        else_statement: BlockStatement = None
         condition = self.__parse_condition()
         statement = self.__parse_block_statement()
-        if not statement:
-            return None
+        if not condition:
+            self.__add_error(PARSER_ERROR_TYPES.MISSING_CONDITIONAL_EXPRESSION)
         while self.__consume_if(TokenType.T_ELIF):
             elif_condition = self.__parse_condition()
             elif_statement = self.__parse_block_statement()
+            if not elif_condition:
+                self.__add_error(PARSER_ERROR_TYPES.MISSING_CONDITIONAL_EXPRESSION)
             elif_statements.append(ConditionalStatement(elif_condition, elif_statement))
         if self.__consume_if(TokenType.T_ELSE):
             else_statement = self.__parse_block_statement()
@@ -265,28 +274,26 @@ class Parser:
             return None
         condition = self.__parse_condition()
         statement = self.__parse_block_statement()
-        if not statement:
-            return None
+        if not condition:
+            self.__add_error(PARSER_ERROR_TYPES.MISSING_CONDITIONAL_EXPRESSION)
         return WhileStatement(condition, statement)
 
     def __parse_for_statement(self) -> IStatement:
         if not self.__consume_if(TokenType.T_FOR):
             return None
         if not self.__consume_if(TokenType.T_LEFT_BRACKET):
-            return None
+            self.__add_error(PARSER_ERROR_TYPES.MISSING_OPENING_BRACKET)
         variable_name = self.__parse_property_access_expression()
         if not variable_name:
-            return None
+            self.__add_error(PARSER_ERROR_TYPES.MISSING_FOR_LOOP_VARIABLE)
         if not self.__consume_if(TokenType.T_COLON):
-            return None
+            self.__add_error(PARSER_ERROR_TYPES.MISSING_FOR_LOOP_COLON)
         iterable = self.__parse_property_access_expression()
         if not iterable:
-            return None
+            self.__add_error(PARSER_ERROR_TYPES.MISSING_FOR_LOOP_ITERABLE)
         if not self.__consume_if(TokenType.T_RIGHT_BRACKET):
-            return None
+            self.__add_error(PARSER_ERROR_TYPES.MISSING_CLOSING_BRACKET)
         statement = self.__parse_block_statement()
-        if not statement:
-            return None
         return ForStatement(variable_name, iterable, statement)
 
     def __parse_return_statement(self) -> IStatement:
@@ -294,7 +301,7 @@ class Parser:
             return None
         expression = self.__parse_expression()
         if not self.__consume_if(TokenType.T_SEMICOLON):
-            return None
+            self.__add_error(PARSER_ERROR_TYPES.MISSING_SEMICOLON)
         return ReturnStatement(expression)
 
     def __parse_variable_statement(self) -> IStatement:
@@ -317,37 +324,40 @@ class Parser:
             self.__next_token()
             expression = self.__parse_expression()
             if not expression:
-                return None
+                self.__add_error(PARSER_ERROR_TYPES.MISSING_EXPRESSION)
             if not self.__consume_if(TokenType.T_SEMICOLON):
-                return None
+                self.__add_error(PARSER_ERROR_TYPES.MISSING_SEMICOLON)
             return token_to_constructor[operation_type](
                 identifier_or_fun_call, expression
             )
-        if self.__consume_if(TokenType.T_SEMICOLON):
-            return identifier_or_fun_call
+        if not self.__consume_if(TokenType.T_SEMICOLON):
+            self.__add_error(PARSER_ERROR_TYPES.MISSING_SEMICOLON)
+        return identifier_or_fun_call
 
     def __parse_try_catch_statement(self) -> IStatement:
         if not self.__consume_if(TokenType.T_TRY):
             return None
         try_statement = self.__parse_block_statement()
-        if not try_statement:
-            return None
         if not self.__consume_if(TokenType.T_CATCH):
-            return None
+            self.__add_error(PARSER_ERROR_TYPES.MISSING_CATCH_KEYWORD)
         exception_types: list[IdentifierExpression] = []
         variable_name: IdentifierExpression = None
         if self.__consume_if(TokenType.T_LEFT_BRACKET):
-            exception_types = [self.__parse_identifier_or_function_call()]
+            exception_type = self.__parse_identifier_or_function_call()
+            if exception_type is None:
+                self.__add_error(PARSER_ERROR_TYPES.MISSING_ERROR_TYPE)
+            exception_types = [exception_type]
             while self.__consume_if(TokenType.T_OR):
-                exception_types.append(self.__parse_identifier_or_function_call())
+                error_type = self.__parse_identifier_or_function_call()
+                if error_type is None:
+                    self.__add_error(PARSER_ERROR_TYPES.MISSING_ERROR_TYPE)
+                exception_types.append(error_type)
             variable_name = self.__parse_identifier_or_function_call()
             if variable_name is None:
-                return None
+                self.__add_error(PARSER_ERROR_TYPES.MISSING_ERROR_VARIABLE)
             if not self.__consume_if(TokenType.T_RIGHT_BRACKET):
-                return None
+                self.__add_error(PARSER_ERROR_TYPES.MISSING_CLOSING_BRACKET)
         catch_statement = self.__parse_block_statement()
-        if not catch_statement:
-            return None
         return TryCatchStatement(
             try_statement, catch_statement, exception_types, variable_name
         )
@@ -356,22 +366,24 @@ class Parser:
         if not self.__consume_if(TokenType.T_THROW):
             return None
         thrown_expression = self.__parse_identifier_or_function_call()
+        if not thrown_expression:
+            self.__add_error(PARSER_ERROR_TYPES.MISSING_EXPRESSION)
         if not self.__consume_if(TokenType.T_SEMICOLON):
-            return None
+            self.__add_error(PARSER_ERROR_TYPES.MISSING_SEMICOLON)
         return ThrowStatement(thrown_expression)
 
     def __parse_break_statement(self) -> IStatement:
         if not self.__consume_if(TokenType.T_BREAK):
             return None
         if not self.__consume_if(TokenType.T_SEMICOLON):
-            return None
+            self.__add_error(PARSER_ERROR_TYPES.MISSING_SEMICOLON)
         return BreakStatement()
 
     def __parse_continue_statement(self) -> IStatement:
         if not self.__consume_if(TokenType.T_CONTINUE):
             return None
         if not self.__consume_if(TokenType.T_SEMICOLON):
-            return None
+            self.__add_error(PARSER_ERROR_TYPES.MISSING_SEMICOLON)
         return ContinueStatement()
 
     def __parse_comment(self) -> IStatement:
@@ -431,8 +443,14 @@ class Parser:
                 is_optional=True,
                 value=token_to_constructor[token.type](),
             )
+        elif self.__check_token_type(TokenType.T_IDENTIFIER):
+            self.__next_token()
+            expression = self.__parse_property_access_expression()
+            if expression is None:
+                self.__add_error(PARSER_ERROR_TYPES.INVALID_PARAMETER_VALUE)
+            return Parameter(name, is_optional=True, value=expression)
         else:
-            return None
+            self.__add_error(PARSER_ERROR_TYPES.INVALID_PARAMETER_VALUE)
 
     def __check_if_param_is_valid(
         self, param: Parameter, parameters: list[Parameter]
@@ -461,10 +479,10 @@ class Parser:
         name = self.current_token.value
         self.__next_token()
         if not self.__consume_if(TokenType.T_LEFT_BRACKET):
-            return False
+            self.__add_error(PARSER_ERROR_TYPES.MISSING_OPENING_BRACKET)
         parameters = self.__parse_parameters()
         if not self.__consume_if(TokenType.T_RIGHT_BRACKET):
-            return False
+            self.__add_error(PARSER_ERROR_TYPES.MISSING_CLOSING_BRACKET)
         block = self.__parse_block_statement()
         functions[name] = FunctionDef(parameters, block)
         return True

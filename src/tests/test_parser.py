@@ -6,6 +6,7 @@ from parser.parser_class import Parser
 from parser.statement_classes import *
 from lexer.token_type_enum import TokenType
 from utils.error_handler_class import ErrorHandler
+from parser.parser_error_class import PARSER_ERROR_TYPES
 
 
 def program_template(parameters="", statements=""):
@@ -611,3 +612,108 @@ def test_statements(input, result):
         program = parser.parse()
     statement_class = program.functions["main"].block.statements[0]
     assert statement_class == result
+
+
+@pytest.mark.parametrize(
+    "input, expected_error",
+    [
+        # Missing expressions
+        ("x = 1 +;", PARSER_ERROR_TYPES.MISSING_EXPRESSION),
+        ("x = 1 -;", PARSER_ERROR_TYPES.MISSING_EXPRESSION),
+        ("x = 1 *;", PARSER_ERROR_TYPES.MISSING_EXPRESSION),
+        ("x = 1 /;", PARSER_ERROR_TYPES.MISSING_EXPRESSION),
+        ("x = 1 %;", PARSER_ERROR_TYPES.MISSING_EXPRESSION),
+        ("x = y == ;", PARSER_ERROR_TYPES.MISSING_EXPRESSION),
+        ("x = y != ;", PARSER_ERROR_TYPES.MISSING_EXPRESSION),
+        ("x = y < ;", PARSER_ERROR_TYPES.MISSING_EXPRESSION),
+        ("x = y > ;", PARSER_ERROR_TYPES.MISSING_EXPRESSION),
+        ("x = y <= ;", PARSER_ERROR_TYPES.MISSING_EXPRESSION),
+        ("x = y >= ;", PARSER_ERROR_TYPES.MISSING_EXPRESSION),
+        ("x = y & ;", PARSER_ERROR_TYPES.MISSING_EXPRESSION),
+        ("x = y | ;", PARSER_ERROR_TYPES.MISSING_EXPRESSION),
+        ("x = ;", PARSER_ERROR_TYPES.MISSING_EXPRESSION),
+        ("x += ;", PARSER_ERROR_TYPES.MISSING_EXPRESSION),
+        ("x -= ;", PARSER_ERROR_TYPES.MISSING_EXPRESSION),
+        ("x *= ;", PARSER_ERROR_TYPES.MISSING_EXPRESSION),
+        ("x /= ;", PARSER_ERROR_TYPES.MISSING_EXPRESSION),
+        ("x %= ;", PARSER_ERROR_TYPES.MISSING_EXPRESSION),
+        ("x = y.;", PARSER_ERROR_TYPES.MISSING_EXPRESSION),
+        ("x = y().;", PARSER_ERROR_TYPES.MISSING_EXPRESSION),
+        ("throw ;", PARSER_ERROR_TYPES.MISSING_EXPRESSION),
+        # Conditional statements
+        ("if", PARSER_ERROR_TYPES.MISSING_OPENING_BRACKET),
+        ("if (", PARSER_ERROR_TYPES.MISSING_CONDITIONAL_EXPRESSION),
+        ("if (true", PARSER_ERROR_TYPES.MISSING_CLOSING_BRACKET),
+        ("if (true)", PARSER_ERROR_TYPES.MISSING_BLOCK_START),
+        ("if (true) {} else", PARSER_ERROR_TYPES.MISSING_BLOCK_START),
+        ("if (true) {} elif", PARSER_ERROR_TYPES.MISSING_OPENING_BRACKET),
+        ("if (true) {} elif (", PARSER_ERROR_TYPES.MISSING_CONDITIONAL_EXPRESSION),
+        ("if (true) {} elif (true", PARSER_ERROR_TYPES.MISSING_CLOSING_BRACKET),
+        ("if (true) {} elif (true)", PARSER_ERROR_TYPES.MISSING_BLOCK_START),
+        ("while", PARSER_ERROR_TYPES.MISSING_OPENING_BRACKET),
+        ("while (", PARSER_ERROR_TYPES.MISSING_CONDITIONAL_EXPRESSION),
+        ("while (true", PARSER_ERROR_TYPES.MISSING_CLOSING_BRACKET),
+        ("while (true)", PARSER_ERROR_TYPES.MISSING_BLOCK_START),
+        # For loop
+        ("for", PARSER_ERROR_TYPES.MISSING_OPENING_BRACKET),
+        ("for (", PARSER_ERROR_TYPES.MISSING_FOR_LOOP_VARIABLE),
+        ("for (i", PARSER_ERROR_TYPES.MISSING_FOR_LOOP_COLON),
+        ("for (i:", PARSER_ERROR_TYPES.MISSING_FOR_LOOP_ITERABLE),
+        ("for (i: x", PARSER_ERROR_TYPES.MISSING_CLOSING_BRACKET),
+        ("for (i: x)", PARSER_ERROR_TYPES.MISSING_BLOCK_START),
+        # Try statement
+        ("try", PARSER_ERROR_TYPES.MISSING_BLOCK_START),
+        ("try {}", PARSER_ERROR_TYPES.MISSING_CATCH_KEYWORD),
+        ("try {} catch", PARSER_ERROR_TYPES.MISSING_BLOCK_START),
+        ("try {} catch (", PARSER_ERROR_TYPES.MISSING_ERROR_TYPE),
+        ("try {} catch (Error", PARSER_ERROR_TYPES.MISSING_ERROR_VARIABLE),
+        ("try {} catch (Error e", PARSER_ERROR_TYPES.MISSING_CLOSING_BRACKET),
+        ("try {} catch (Error e)", PARSER_ERROR_TYPES.MISSING_BLOCK_START),
+        ("try {} catch (Error1 |", PARSER_ERROR_TYPES.MISSING_ERROR_TYPE),
+        ("try {} catch (Error1 | Error2", PARSER_ERROR_TYPES.MISSING_ERROR_VARIABLE),
+        ("try {} catch (Error1 | Error2 e", PARSER_ERROR_TYPES.MISSING_CLOSING_BRACKET),
+        ("try {} catch (Error1 | Error2 e)", PARSER_ERROR_TYPES.MISSING_BLOCK_START),
+        # Type check expression
+        ("x = y is;", PARSER_ERROR_TYPES.MISSING_TYPE_NAME),
+        # Function call
+        ("x(a;", PARSER_ERROR_TYPES.MISSING_CLOSING_BRACKET),
+        ("x(a,;", PARSER_ERROR_TYPES.MISSING_ARGUMENT),
+        ("x(a, b;", PARSER_ERROR_TYPES.MISSING_CLOSING_BRACKET),
+        # Missing semicolon
+        ("x = 1 + 2", PARSER_ERROR_TYPES.MISSING_SEMICOLON),
+        ("x = 1 - 2", PARSER_ERROR_TYPES.MISSING_SEMICOLON),
+        ("x = 1 * 2", PARSER_ERROR_TYPES.MISSING_SEMICOLON),
+        ("x = 1 / 2", PARSER_ERROR_TYPES.MISSING_SEMICOLON),
+        ("x = 1 % 2", PARSER_ERROR_TYPES.MISSING_SEMICOLON),
+        ("x = y == 1", PARSER_ERROR_TYPES.MISSING_SEMICOLON),
+        ("x = y != 1", PARSER_ERROR_TYPES.MISSING_SEMICOLON),
+        ("x = y < 1", PARSER_ERROR_TYPES.MISSING_SEMICOLON),
+        ("x = y > 1", PARSER_ERROR_TYPES.MISSING_SEMICOLON),
+        ("x = y <= 1", PARSER_ERROR_TYPES.MISSING_SEMICOLON),
+        ("x = y >= 1", PARSER_ERROR_TYPES.MISSING_SEMICOLON),
+        ("x = y & 1", PARSER_ERROR_TYPES.MISSING_SEMICOLON),
+        ("x = y | 1", PARSER_ERROR_TYPES.MISSING_SEMICOLON),
+        ("x = 1", PARSER_ERROR_TYPES.MISSING_SEMICOLON),
+        ("x += 1", PARSER_ERROR_TYPES.MISSING_SEMICOLON),
+        ("x -= 1", PARSER_ERROR_TYPES.MISSING_SEMICOLON),
+        ("x *= 1", PARSER_ERROR_TYPES.MISSING_SEMICOLON),
+        ("x /= 1", PARSER_ERROR_TYPES.MISSING_SEMICOLON),
+        ("x %= 1", PARSER_ERROR_TYPES.MISSING_SEMICOLON),
+        ("x = y.z", PARSER_ERROR_TYPES.MISSING_SEMICOLON),
+        ("x = y.z()", PARSER_ERROR_TYPES.MISSING_SEMICOLON),
+        ("x = y is Int", PARSER_ERROR_TYPES.MISSING_SEMICOLON),
+        ("return", PARSER_ERROR_TYPES.MISSING_SEMICOLON),
+        ("return 1", PARSER_ERROR_TYPES.MISSING_SEMICOLON),
+        ("continue", PARSER_ERROR_TYPES.MISSING_SEMICOLON),
+        ("break", PARSER_ERROR_TYPES.MISSING_SEMICOLON),
+    ],
+)
+def test_error_handling(input, expected_error):
+    error_handler = ErrorHandler()
+    final_input = program_template(statements=input)
+    with io.StringIO(final_input) as stream_provider:
+        lexer = Lexer(stream_provider, error_handler)
+        parser = Parser(lexer)
+        parser.parse()
+    assert error_handler.has_errors()
+    assert error_handler.errors[0].type == expected_error
