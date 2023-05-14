@@ -267,6 +267,48 @@ def test_function_parameters(input, result):
             ),
         ),
         (
+            r"1 == 2 == 3",
+            EqualExpression(
+                EqualExpression(IntegerLiteral(1), IntegerLiteral(2)),
+                IntegerLiteral(3),
+            ),
+        ),
+        (
+            r"1 != 2 != 3",
+            NotEqualExpression(
+                NotEqualExpression(IntegerLiteral(1), IntegerLiteral(2)),
+                IntegerLiteral(3),
+            ),
+        ),
+        (
+            r"1 > 2 > 3",
+            GreaterThanExpression(
+                GreaterThanExpression(IntegerLiteral(1), IntegerLiteral(2)),
+                IntegerLiteral(3),
+            ),
+        ),
+        (
+            r"1 >= 2 >= 3",
+            GreaterEqualExpression(
+                GreaterEqualExpression(IntegerLiteral(1), IntegerLiteral(2)),
+                IntegerLiteral(3),
+            ),
+        ),
+        (
+            r"1 < 2 < 3",
+            LessThanExpression(
+                LessThanExpression(IntegerLiteral(1), IntegerLiteral(2)),
+                IntegerLiteral(3),
+            ),
+        ),
+        (
+            r"1 <= 2 <= 3",
+            LessEqualExpression(
+                LessEqualExpression(IntegerLiteral(1), IntegerLiteral(2)),
+                IntegerLiteral(3),
+            ),
+        ),
+        (
             r"1 + 2 + 3",
             AddExpression(
                 AddExpression(IntegerLiteral(1), IntegerLiteral(2)),
@@ -717,3 +759,195 @@ def test_error_handling(input, expected_error):
         parser.parse()
     assert error_handler.has_errors()
     assert error_handler.errors[0].type == expected_error
+
+
+@pytest.mark.parametrize(
+    "input, expected_result",
+    [
+        (
+            "x = y.z;",
+            AssignmentStatement(
+                IdentifierExpression("x"),
+                PropertyAccessExpression(
+                    IdentifierExpression("y"), IdentifierExpression("z")
+                ),
+            ),
+        ),
+        (
+            "x = y.z();",
+            AssignmentStatement(
+                IdentifierExpression("x"),
+                PropertyAccessExpression(
+                    IdentifierExpression("y"),
+                    FunctionCallExpression("z", []),
+                ),
+            ),
+        ),
+        (
+            "x.y = z;",
+            AssignmentStatement(
+                PropertyAccessExpression(
+                    IdentifierExpression("x"), IdentifierExpression("y")
+                ),
+                IdentifierExpression("z"),
+            ),
+        ),
+        (
+            "x.y = z();",
+            AssignmentStatement(
+                PropertyAccessExpression(
+                    IdentifierExpression("x"), IdentifierExpression("y")
+                ),
+                FunctionCallExpression("z", []),
+            ),
+        ),
+        (
+            "x.y = x.z;",
+            AssignmentStatement(
+                PropertyAccessExpression(
+                    IdentifierExpression("x"), IdentifierExpression("y")
+                ),
+                PropertyAccessExpression(
+                    IdentifierExpression("x"), IdentifierExpression("z")
+                ),
+            ),
+        ),
+        (
+            "x.y = x.z();",
+            AssignmentStatement(
+                PropertyAccessExpression(
+                    IdentifierExpression("x"), IdentifierExpression("y")
+                ),
+                PropertyAccessExpression(
+                    IdentifierExpression("x"), FunctionCallExpression("z", [])
+                ),
+            ),
+        ),
+        (
+            "x(y.z);",
+            FunctionCallExpression(
+                "x",
+                [
+                    Argument(
+                        PropertyAccessExpression(
+                            IdentifierExpression("y"), IdentifierExpression("z")
+                        )
+                    )
+                ],
+            ),
+        ),
+        (
+            "x(y.z());",
+            FunctionCallExpression(
+                "x",
+                [
+                    Argument(
+                        PropertyAccessExpression(
+                            IdentifierExpression("y"), FunctionCallExpression("z", [])
+                        )
+                    )
+                ],
+            ),
+        ),
+        (
+            "if (x.y) {}",
+            IfStatement(
+                PropertyAccessExpression(
+                    IdentifierExpression("x"), IdentifierExpression("y")
+                ),
+                BlockStatement([]),
+            ),
+        ),
+        (
+            "if (x.y()) {}",
+            IfStatement(
+                PropertyAccessExpression(
+                    IdentifierExpression("x"), FunctionCallExpression("y", [])
+                ),
+                BlockStatement([]),
+            ),
+        ),
+        (
+            "if (x.y) {} elif (x.z) {}",
+            IfStatement(
+                PropertyAccessExpression(
+                    IdentifierExpression("x"), IdentifierExpression("y")
+                ),
+                BlockStatement([]),
+                [
+                    ConditionalStatement(
+                        PropertyAccessExpression(
+                            IdentifierExpression("x"), IdentifierExpression("z")
+                        ),
+                        BlockStatement([]),
+                    )
+                ],
+            ),
+        ),
+        (
+            "if (x.y()) {} elif (x.z()) {}",
+            IfStatement(
+                PropertyAccessExpression(
+                    IdentifierExpression("x"), FunctionCallExpression("y", [])
+                ),
+                BlockStatement([]),
+                [
+                    ConditionalStatement(
+                        PropertyAccessExpression(
+                            IdentifierExpression("x"), FunctionCallExpression("z", [])
+                        ),
+                        BlockStatement([]),
+                    )
+                ],
+            ),
+        ),
+        (
+            "while (x.y) {}",
+            WhileStatement(
+                PropertyAccessExpression(
+                    IdentifierExpression("x"), IdentifierExpression("y")
+                ),
+                BlockStatement([]),
+            ),
+        ),
+        (
+            "while (x.y()) {}",
+            WhileStatement(
+                PropertyAccessExpression(
+                    IdentifierExpression("x"), FunctionCallExpression("y", [])
+                ),
+                BlockStatement([]),
+            ),
+        ),
+        (
+            "for (x : y.z) {}",
+            ForStatement(
+                IdentifierExpression("x"),
+                PropertyAccessExpression(
+                    IdentifierExpression("y"), IdentifierExpression("z")
+                ),
+                BlockStatement([]),
+            ),
+        ),
+        (
+            "for (x : y.z()) {}",
+            ForStatement(
+                IdentifierExpression("x"),
+                PropertyAccessExpression(
+                    IdentifierExpression("y"), FunctionCallExpression("z", [])
+                ),
+                BlockStatement([]),
+            ),
+        ),
+    ],
+)
+def test_access_operator(input, expected_result):
+    error_handler = ErrorHandler()
+    final_input = program_template(statements=input)
+    with io.StringIO(final_input) as stream_provider:
+        lexer = Lexer(stream_provider, error_handler)
+        parser = Parser(lexer)
+        program = parser.parse()
+    assert not error_handler.has_errors()
+    statement_class = program.functions["main"].block.statements[0]
+    assert statement_class == expected_result

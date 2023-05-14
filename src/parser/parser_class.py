@@ -305,12 +305,13 @@ class Parser:
         return ReturnStatement(expression)
 
     def __parse_variable_statement(self) -> IStatement:
-        identifier_or_fun_call = self.__parse_identifier_or_function_call()
+        identifier_or_fun_call = self.__parse_property_access_expression()
         if not identifier_or_fun_call:
             return None
-        if type(
-            identifier_or_fun_call
-        ) == IdentifierExpression and self.__check_if_token_type_in_list(
+        if type(identifier_or_fun_call) in [
+            IdentifierExpression,
+            PropertyAccessExpression,
+        ] and self.__check_if_token_type_in_list(
             [
                 TokenType.T_ASSIGN,
                 TokenType.T_ASSIGN_PLUS,
