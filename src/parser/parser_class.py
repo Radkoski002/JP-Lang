@@ -488,8 +488,17 @@ class Parser:
         functions[name] = FunctionDef(parameters, block)
         return True
 
+    def __parse_comment_or_func_def(
+        self, functions: dict[str, FunctionDef], comments: dict[int, Comment]
+    ) -> bool:
+        if comment := self.__parse_comment():
+            comments[self.current_token.position.line] = comment
+            return True
+        return self.__parse_func_def(functions)
+
     def parse(self) -> Program:
         functions: dict[str, FunctionDef] = {}
-        while self.__parse_func_def(functions):
+        comments: dict[int, Comment] = {}
+        while self.__parse_comment_or_func_def(functions, comments):
             pass
         return Program(functions)
