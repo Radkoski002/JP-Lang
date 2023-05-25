@@ -18,7 +18,10 @@ class PARSER_ERROR_TYPES(Enum):
     MISSING_CATCH_KEYWORD = "Missing catch keyword"
     MISSING_ERROR_TYPE = "Missing error type"
     MISSING_ERROR_VARIABLE = "Missing error variable"
+    MISSING_PARAMETER = "Missing parameter"
     INVALID_PARAMETER_VALUE = "Invalid parameter value"
+    FUNCTION_ALREADY_EXIST = "Function already exist"
+    PARAMETER_ALREADY_EXIST = "Parameter already exist"
 
 
 class ParserError(Exception):

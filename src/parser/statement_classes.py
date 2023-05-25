@@ -319,27 +319,43 @@ class AssignmentModuloStatement(AssignmentStatement):
         super().__init__(variable, expression)
 
 
-class TryCatchStatement(IStatement):
+class CatchStatement(IStatement):
     def __init__(
         self,
-        try_statement: BlockStatement,
         catch_statement: BlockStatement,
         error_types: list[IdentifierExpression] = [],
         error_var: IdentifierExpression = None,
     ) -> None:
-        self.try_statement: BlockStatement = try_statement
         self.catch_statement: BlockStatement = catch_statement
         self.error_types: list[IdentifierExpression] = error_types
         self.error_var: IdentifierExpression = error_var
+
+    def __eq__(self, other):
+        if isinstance(other, CatchStatement):
+            return (
+                super().__eq__(other)
+                and self.catch_statement == other.catch_statement
+                and self.error_types == other.error_types
+                and self.error_var == other.error_var
+            )
+        return False
+
+
+class TryCatchStatement(IStatement):
+    def __init__(
+        self,
+        try_statement: BlockStatement,
+        catch_statements: list[CatchStatement],
+    ) -> None:
+        self.try_statement: BlockStatement = try_statement
+        self.catch_statements: list[CatchStatement] = catch_statements
 
     def __eq__(self, other):
         if isinstance(other, TryCatchStatement):
             return (
                 super().__eq__(other)
                 and self.try_statement == other.try_statement
-                and self.catch_statement == other.catch_statement
-                and self.error_types == other.error_types
-                and self.error_var == other.error_var
+                and self.catch_statements == other.catch_statements
             )
         return False
 

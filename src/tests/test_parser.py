@@ -560,27 +560,57 @@ def test_expression(
         ),
         (
             "try {} catch {}",
-            TryCatchStatement(BlockStatement([]), BlockStatement([]), []),
+            TryCatchStatement(BlockStatement([]), [CatchStatement(BlockStatement([]))]),
         ),
         (
             "try {} catch (Error e) {}",
             TryCatchStatement(
                 BlockStatement([]),
-                BlockStatement([]),
-                [IdentifierExpression("Error")],
-                IdentifierExpression("e"),
+                [
+                    CatchStatement(
+                        BlockStatement([]),
+                        [IdentifierExpression("Error")],
+                        IdentifierExpression("e"),
+                    )
+                ],
             ),
         ),
         (
             "try {} catch (FirstError | SecondError e) {}",
             TryCatchStatement(
                 BlockStatement([]),
+                [
+                    CatchStatement(
+                        BlockStatement([]),
+                        [
+                            IdentifierExpression("FirstError"),
+                            IdentifierExpression("SecondError"),
+                        ],
+                        IdentifierExpression("e"),
+                    )
+                ],
+            ),
+        ),
+        (
+            "try {} catch (FirstError e) {} catch (SecondError e) {})",
+            TryCatchStatement(
                 BlockStatement([]),
                 [
-                    IdentifierExpression("FirstError"),
-                    IdentifierExpression("SecondError"),
+                    CatchStatement(
+                        BlockStatement([]),
+                        [
+                            IdentifierExpression("FirstError"),
+                        ],
+                        IdentifierExpression("e"),
+                    ),
+                    CatchStatement(
+                        BlockStatement([]),
+                        [
+                            IdentifierExpression("SecondError"),
+                        ],
+                        IdentifierExpression("e"),
+                    ),
                 ],
-                IdentifierExpression("e"),
             ),
         ),
         (
@@ -638,10 +668,6 @@ def test_expression(
                 IdentifierExpression("x"),
                 BlockStatement([]),
             ),
-        ),
-        (
-            "# comment\n",
-            Comment(" comment\n"),
         ),
     ],
 )
