@@ -9,7 +9,7 @@ from lexer.lexer_class import Lexer
 def main():
     error_handler = ErrorHandler()
     if len(sys.argv) == 1:
-        with io.StringIO("main() {}") as stream_provider:
+        with io.StringIO("main() {x=1;}") as stream_provider:
             lexer = Lexer(stream_provider, error_handler)
             parser = Parser(lexer)
             program = parser.parse()

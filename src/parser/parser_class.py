@@ -6,8 +6,6 @@ from lexer.token_type_enum import TokenType
 from parser.helpers import *
 from parser.parser_error_class import PARSER_ERROR_TYPES, ParserError
 
-# TODO: Add position to every statement/expresssion class
-
 
 class Parser:
     def __init__(self, lexer: Lexer) -> None:
@@ -81,7 +79,7 @@ class Parser:
         return False
 
     def __next_token(self) -> None:
-        self.current_token = self.lexer.build_next_token()
+        self.current_token = self.lexer.build_next_token_without_comments()
 
     ############################## EXPRESSIONS ##############################
 
@@ -95,47 +93,53 @@ class Parser:
         while construtor := func_params["constructor_dict"].get(
             self.current_token.type
         ):
+            position = self.current_token.position
             self.__next_token()
             right = self.__expect_expression(
                 func_params["function"], PARSER_ERROR_TYPES.MISSING_EXPRESSION
             )
-            left = construtor(left, right)
+            left = construtor(left, right, position)
         return left
 
     def __parse_property_access_expression(self) -> IExpression:
         return self.__parse_infix_expression(INFIX_EXPRESSIONS.PROPERTY_ACCESS)
 
     def __parse_arguments(self) -> list[IExpression]:
+        position = self.current_token.position
         is_reference = self.__consume_if(TokenType.T_REF)
         argument = self.__parse_expression()
         if not argument:
             return []
-        arguments = [Argument(argument, is_reference)]
+        arguments = [Argument(argument, is_reference, position)]
         while self.__consume_if(TokenType.T_COMMA):
+            position = self.current_token.position
             is_reference = self.__consume_if(TokenType.T_REF)
             argument = self.__expect_expression(
                 self.__parse_expression, PARSER_ERROR_TYPES.MISSING_ARGUMENT
             )
-            arguments.append(Argument(argument, is_reference))
+            arguments.append(Argument(argument, is_reference, position))
         return arguments
 
-    def __parse_rest_of_function_call(self, name: str) -> IExpression:
+    def __parse_rest_of_function_call(
+        self, name: str, position: Position
+    ) -> IExpression:
         if not self.__consume_if(TokenType.T_LEFT_BRACKET):
             return None
         arguments = self.__parse_arguments()
         self.__expect_token_type(TokenType.T_RIGHT_BRACKET)
-        return FunctionCallExpression(name, arguments)
+        return FunctionCallExpression(name, arguments, position)
 
     def __parse_identifier_or_function_call(self) -> IExpression:
         if not self.__check_token_type(TokenType.T_IDENTIFIER):
             return None
 
         name = self.current_token.value
+        position = self.current_token.position
         self.__next_token()
 
-        expression = self.__parse_rest_of_function_call(name)
+        expression = self.__parse_rest_of_function_call(name, position)
         if not expression:
-            return IdentifierExpression(name)
+            return IdentifierExpression(name, position)
         return expression
 
     def __parse_expression_in_brackets(self) -> IExpression:
@@ -151,14 +155,16 @@ class Parser:
         if constructor := literal_with_value_token_to_constructor.get(
             self.current_token.type
         ):
-            expression = constructor(self.current_token.value)
+            expression = constructor(
+                self.current_token.value, self.current_token.position
+            )
             self.__next_token()
         elif self.__check_token_type(TokenType.T_IDENTIFIER):
             expression = self.__parse_property_access_expression()
         elif constructor := literal_without_value_token_to_constructor.get(
             self.current_token.type
         ):
-            expression = constructor()
+            expression = constructor(self.current_token.position)
             self.__next_token()
         else:
             expression = self.__parse_expression_in_brackets()
@@ -166,6 +172,7 @@ class Parser:
 
     def __parse_type_check_expression(self) -> IExpression:
         expression = self.__parse_base_expression()
+        position = self.current_token.position
         if not expression:
             return None
         if not self.__consume_if(TokenType.T_TYPE_CHECK):
@@ -173,15 +180,16 @@ class Parser:
         self.__expect_token_type(TokenType.T_IDENTIFIER)
         type_name = self.current_token.value
         self.__next_token()
-        return TypeCheckExpression(expression, type_name)
+        return TypeCheckExpression(expression, type_name, position)
 
     def __parse_negation_expression(self) -> IExpression:
         if constructor := negation_token_to_constructor.get(self.current_token.type):
+            position = self.current_token.position
             self.__next_token()
             expression = self.__expect_expression(
                 self.__parse_expression, PARSER_ERROR_TYPES.MISSING_EXPRESSION
             )
-            return constructor(expression)
+            return constructor(expression, position)
         return self.__parse_type_check_expression()
 
     def __parse_multiplication_expression(self) -> IExpression:
@@ -205,13 +213,14 @@ class Parser:
     ############################## STATEMENTS ##############################
 
     def __parse_block_statement(self) -> BlockStatement:
+        position = self.current_token.position
         if not self.__consume_if(TokenType.T_LEFT_CURLY_BRACKET):
             return None
         statements: list[IStatement] = []
         while (statement := self.__parse_statement()) is not None:
             statements.append(statement)
         self.__expect_token_type(TokenType.T_RIGHT_CURLY_BRACKET)
-        return BlockStatement(statements)
+        return BlockStatement(statements, position)
 
     def __parse_condition(self) -> IExpression:
         self.__expect_token_type(TokenType.T_LEFT_BRACKET)
@@ -221,7 +230,7 @@ class Parser:
         self.__expect_token_type(TokenType.T_RIGHT_BRACKET)
         return condition
 
-    def __parse_if_statement(self) -> IStatement:
+    def __parse_if_statement(self, position: Position) -> IStatement:
         if not self.__consume_if(TokenType.T_IF):
             return None
         elif_statements: list[BlockStatement] = []
@@ -229,26 +238,31 @@ class Parser:
         condition = self.__parse_condition()
         statement = self.__expect_block()
         while self.__consume_if(TokenType.T_ELIF):
+            elif_position = self.current_token.position
             elif_condition = self.__expect_expression(
                 self.__parse_condition,
                 PARSER_ERROR_TYPES.MISSING_CONDITIONAL_EXPRESSION,
             )
             elif_statement = self.__expect_block()
-            elif_statements.append(ConditionalStatement(elif_condition, elif_statement))
+            elif_statements.append(
+                ConditionalStatement(elif_condition, elif_statement, elif_position)
+            )
         if self.__consume_if(TokenType.T_ELSE):
             else_statement = self.__expect_block()
-        return IfStatement(condition, statement, elif_statements, else_statement)
+        return IfStatement(
+            condition, statement, elif_statements, else_statement, position
+        )
 
-    def __parse_while_statement(self) -> IStatement:
+    def __parse_while_statement(self, position: Position) -> IStatement:
         if not self.__consume_if(TokenType.T_WHILE):
             return None
         condition = self.__expect_expression(
             self.__parse_condition, PARSER_ERROR_TYPES.MISSING_CONDITIONAL_EXPRESSION
         )
         statement = self.__expect_block()
-        return WhileStatement(condition, statement)
+        return WhileStatement(condition, statement, position)
 
-    def __parse_for_statement(self) -> IStatement:
+    def __parse_for_statement(self, position: Position) -> IStatement:
         if not self.__consume_if(TokenType.T_FOR):
             return None
         self.__expect_token_type(TokenType.T_LEFT_BRACKET)
@@ -262,16 +276,16 @@ class Parser:
         )
         self.__expect_token_type(TokenType.T_RIGHT_BRACKET)
         statement = self.__expect_block()
-        return ForStatement(variable_name, iterable, statement)
+        return ForStatement(variable_name, iterable, statement, position)
 
-    def __parse_return_statement(self) -> IStatement:
+    def __parse_return_statement(self, position: Position) -> IStatement:
         if not self.__consume_if(TokenType.T_RETURN):
             return None
         expression = self.__parse_expression()
         self.__expect_token_type(TokenType.T_SEMICOLON)
-        return ReturnStatement(expression)
+        return ReturnStatement(expression, position)
 
-    def __parse_variable_statement(self) -> IStatement:
+    def __parse_variable_statement(self, position: Position) -> IStatement:
         identifier_or_fun_call = self.__parse_property_access_expression()
         if not identifier_or_fun_call:
             return None
@@ -281,13 +295,14 @@ class Parser:
                 self.__parse_expression, PARSER_ERROR_TYPES.MISSING_EXPRESSION
             )
             self.__expect_token_type(TokenType.T_SEMICOLON)
-            return constructor(identifier_or_fun_call, expression)
+            return constructor(identifier_or_fun_call, expression, position)
         else:
             self.__expect_token_type(TokenType.T_SEMICOLON)
             return identifier_or_fun_call
 
     def __parse_catch_statements(self) -> IStatement:
         catch_statements: list[CatchStatement] = []
+        position = self.current_token.position
         while self.__consume_if(TokenType.T_CATCH):
             exception_types: list[IdentifierExpression] = []
             variable_name: IdentifierExpression = None
@@ -309,20 +324,23 @@ class Parser:
                 )
                 self.__expect_token_type(TokenType.T_RIGHT_BRACKET)
             catch_statements.append(
-                CatchStatement(self.__expect_block(), exception_types, variable_name)
+                CatchStatement(
+                    self.__expect_block(), exception_types, variable_name, position
+                )
             )
+            position = self.current_token.position
         if len(catch_statements) == 0:
             self.__add_error(PARSER_ERROR_TYPES.MISSING_CATCH_KEYWORD)
         return catch_statements
 
-    def __parse_try_catch_statement(self) -> IStatement:
+    def __parse_try_catch_statement(self, position: Position) -> IStatement:
         if not self.__consume_if(TokenType.T_TRY):
             return None
         try_statement = self.__expect_block()
         catch_statements = self.__parse_catch_statements()
-        return TryCatchStatement(try_statement, catch_statements)
+        return TryCatchStatement(try_statement, catch_statements, position)
 
-    def __parse_throw_exception_statement(self) -> IStatement:
+    def __parse_throw_exception_statement(self, position: Position) -> IStatement:
         if not self.__consume_if(TokenType.T_THROW):
             return None
         thrown_expression = self.__expect_expression(
@@ -330,31 +348,32 @@ class Parser:
             PARSER_ERROR_TYPES.MISSING_EXPRESSION,
         )
         self.__expect_token_type(TokenType.T_SEMICOLON)
-        return ThrowStatement(thrown_expression)
+        return ThrowStatement(thrown_expression, position)
 
-    def __parse_break_statement(self) -> IStatement:
+    def __parse_break_statement(self, position: Position) -> IStatement:
         if not self.__consume_if(TokenType.T_BREAK):
             return None
         self.__expect_token_type(TokenType.T_SEMICOLON)
-        return BreakStatement()
+        return BreakStatement(position)
 
-    def __parse_continue_statement(self) -> IStatement:
+    def __parse_continue_statement(self, position: Position) -> IStatement:
         if not self.__consume_if(TokenType.T_CONTINUE):
             return None
         self.__expect_token_type(TokenType.T_SEMICOLON)
-        return ContinueStatement()
+        return ContinueStatement(position)
 
     def __parse_statement(self) -> IStatement:
+        position = self.current_token.position
         return (
-            self.__parse_if_statement()
-            or self.__parse_while_statement()
-            or self.__parse_return_statement()
-            or self.__parse_for_statement()
-            or self.__parse_variable_statement()
-            or self.__parse_try_catch_statement()
-            or self.__parse_throw_exception_statement()
-            or self.__parse_break_statement()
-            or self.__parse_continue_statement()
+            self.__parse_if_statement(position)
+            or self.__parse_while_statement(position)
+            or self.__parse_return_statement(position)
+            or self.__parse_for_statement(position)
+            or self.__parse_variable_statement(position)
+            or self.__parse_try_catch_statement(position)
+            or self.__parse_throw_exception_statement(position)
+            or self.__parse_break_statement(position)
+            or self.__parse_continue_statement(position)
         )
 
     ############################## FUNCTION DEF ##############################
@@ -415,9 +434,12 @@ class Parser:
         return parameters
 
     def __parse_func_def(self, functions: dict) -> bool:
+        while self.__consume_if(TokenType.T_COMMENT):
+            pass
         if not self.__check_token_type(TokenType.T_IDENTIFIER):
             return False
         name = self.current_token.value
+        position = self.current_token.position
         self.__next_token()
         self.__expect_token_type(TokenType.T_LEFT_BRACKET)
         parameters = self.__parse_parameters()
@@ -425,7 +447,7 @@ class Parser:
         block = self.__expect_block()
         if functions.get(name):
             self.__add_error(PARSER_ERROR_TYPES.FUNCTION_ALREADY_EXIST)
-        functions[name] = FunctionDef(parameters, block)
+        functions[name] = FunctionDef(parameters, block, position)
         return True
 
     def parse(self) -> Program:

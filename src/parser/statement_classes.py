@@ -1,13 +1,19 @@
+from utils.position_class import Position
+
+
 class IExpression:
-    def __init__(self) -> None:
-        pass
+    def __init__(self, position: Position = None) -> None:
+        self.position: Position = position
 
     def __eq__(self, other):
         return type(self) == type(other)
 
 
 class InfixExpression(IExpression):
-    def __init__(self, left: IExpression, right: IExpression) -> None:
+    def __init__(
+        self, left: IExpression, right: IExpression, position: Position = None
+    ) -> None:
+        super().__init__(position)
         self.left: IExpression = left
         self.right: IExpression = right
 
@@ -22,88 +28,120 @@ class InfixExpression(IExpression):
 
 
 class OrExpression(InfixExpression):
-    def __init__(self, left: IExpression, right: IExpression) -> None:
-        super().__init__(left, right)
+    def __init__(
+        self, left: IExpression, right: IExpression, position: Position = None
+    ) -> None:
+        super().__init__(left, right, position)
 
 
 class AndExpression(InfixExpression):
-    def __init__(self, left: IExpression, right: IExpression) -> None:
-        super().__init__(left, right)
+    def __init__(
+        self, left: IExpression, right: IExpression, position: Position = None
+    ) -> None:
+        super().__init__(left, right, position)
 
 
 class EqualExpression(InfixExpression):
-    def __init__(self, left: IExpression, right: IExpression) -> None:
-        super().__init__(left, right)
+    def __init__(
+        self, left: IExpression, right: IExpression, position: Position = None
+    ) -> None:
+        super().__init__(left, right, position)
 
 
 class NotEqualExpression(InfixExpression):
-    def __init__(self, left: IExpression, right: IExpression) -> None:
-        super().__init__(left, right)
+    def __init__(
+        self, left: IExpression, right: IExpression, position: Position = None
+    ) -> None:
+        super().__init__(left, right, position)
 
 
 class GreaterThanExpression(InfixExpression):
-    def __init__(self, left: IExpression, right: IExpression) -> None:
-        super().__init__(left, right)
+    def __init__(
+        self, left: IExpression, right: IExpression, position: Position = None
+    ) -> None:
+        super().__init__(left, right, position)
 
 
 class GreaterEqualExpression(InfixExpression):
-    def __init__(self, left: IExpression, right: IExpression) -> None:
-        super().__init__(left, right)
+    def __init__(
+        self, left: IExpression, right: IExpression, position: Position = None
+    ) -> None:
+        super().__init__(left, right, position)
 
 
 class LessThanExpression(InfixExpression):
-    def __init__(self, left: IExpression, right: IExpression) -> None:
-        super().__init__(left, right)
+    def __init__(
+        self, left: IExpression, right: IExpression, position: Position = None
+    ) -> None:
+        super().__init__(left, right, position)
 
 
 class LessEqualExpression(InfixExpression):
-    def __init__(self, left: IExpression, right: IExpression) -> None:
-        super().__init__(left, right)
+    def __init__(
+        self, left: IExpression, right: IExpression, position: Position = None
+    ) -> None:
+        super().__init__(left, right, position)
 
 
 class AddExpression(InfixExpression):
-    def __init__(self, left: IExpression, right: IExpression) -> None:
-        super().__init__(left, right)
+    def __init__(
+        self, left: IExpression, right: IExpression, position: Position = None
+    ) -> None:
+        super().__init__(left, right, position)
 
 
 class SubtractExpression(InfixExpression):
-    def __init__(self, left: IExpression, right: IExpression) -> None:
-        super().__init__(left, right)
+    def __init__(
+        self, left: IExpression, right: IExpression, position: Position = None
+    ) -> None:
+        super().__init__(left, right, position)
 
 
 class MultiplyExpression(InfixExpression):
-    def __init__(self, left: IExpression, right: IExpression) -> None:
-        super().__init__(left, right)
+    def __init__(
+        self, left: IExpression, right: IExpression, position: Position = None
+    ) -> None:
+        super().__init__(left, right, position)
 
 
 class DivideExpression(InfixExpression):
-    def __init__(self, left: IExpression, right: IExpression) -> None:
-        super().__init__(left, right)
+    def __init__(
+        self, left: IExpression, right: IExpression, position: Position = None
+    ) -> None:
+        super().__init__(left, right, position)
 
 
 class ModuloExpression(InfixExpression):
-    def __init__(self, left: IExpression, right: IExpression) -> None:
-        super().__init__(left, right)
+    def __init__(
+        self, left: IExpression, right: IExpression, position: Position = None
+    ) -> None:
+        super().__init__(left, right, position)
 
 
 class BitwiseNegationExpression(IExpression):
-    def __init__(self, expression: IExpression) -> None:
+    def __init__(self, expression: IExpression, position: Position = None) -> None:
+        super().__init__(position)
         self.expression: IExpression = expression
 
 
 class NumericNegationExpression(IExpression):
-    def __init__(self, expression: IExpression) -> None:
+    def __init__(self, expression: IExpression, position: Position = None) -> None:
+        super().__init__(position)
         self.expression: IExpression = expression
 
 
 class TypeCheckExpression(IExpression):
-    def __init__(self, expression: IExpression, type_name: str) -> None:
+    def __init__(
+        self, expression: IExpression, type_name: str, position: Position = None
+    ) -> None:
+        super().__init__(position)
         self.expression: IExpression = expression
         self.type_name: str = type_name
 
 
 class LiteralExpression(IExpression):
-    def __init__(self, value: any) -> None:
+    def __init__(self, value: any, position: Position = None) -> None:
+        super().__init__(position)
         self.value: any = value
 
     def __eq__(self, other):
@@ -113,42 +151,43 @@ class LiteralExpression(IExpression):
 
 
 class NullLiteral(LiteralExpression):
-    def __init__(self) -> None:
-        super().__init__(None)
+    def __init__(self, position: Position = None) -> None:
+        super().__init__(None, position)
 
 
 class IntegerLiteral(LiteralExpression):
-    def __init__(self, value: int) -> None:
-        super().__init__(value)
+    def __init__(self, value: int, position: Position = None) -> None:
+        super().__init__(value, position)
 
 
 class FloatLiteral(LiteralExpression):
-    def __init__(self, value: float) -> None:
-        super().__init__(value)
+    def __init__(self, value: float, position: Position = None) -> None:
+        super().__init__(value, position)
 
 
 class StringLiteral(LiteralExpression):
-    def __init__(self, value: str) -> None:
-        super().__init__(value)
+    def __init__(self, value: str, position: Position = None) -> None:
+        super().__init__(value, position)
 
 
 class BooleanLiteral(LiteralExpression):
-    def __init__(self, value: bool) -> None:
-        super().__init__(value)
+    def __init__(self, value: bool, position: Position = None) -> None:
+        super().__init__(value, position)
 
 
 class FalseLiteral(BooleanLiteral):
-    def __init__(self) -> None:
-        super().__init__(False)
+    def __init__(self, position: Position = None) -> None:
+        super().__init__(False, position)
 
 
 class TrueLiteral(BooleanLiteral):
-    def __init__(self) -> None:
-        super().__init__(True)
+    def __init__(self, position: Position = None) -> None:
+        super().__init__(True, position)
 
 
 class IdentifierExpression(IExpression):
-    def __init__(self, name: str) -> None:
+    def __init__(self, name: str, position: Position = None) -> None:
+        super().__init__(position)
         self.name: str = name
 
     def __eq__(self, other):
@@ -158,7 +197,10 @@ class IdentifierExpression(IExpression):
 
 
 class FunctionCallExpression(IExpression):
-    def __init__(self, name: str, arguments: list[IExpression]) -> None:
+    def __init__(
+        self, name: str, arguments: list[IExpression], position: Position = None
+    ) -> None:
+        super().__init__(position)
         self.name: str = name
         self.arguments: list[Argument] = arguments
 
@@ -177,8 +219,9 @@ class PropertyAccessExpression(InfixExpression):
         self,
         main_object: FunctionCallExpression | IdentifierExpression,
         property: FunctionCallExpression | IdentifierExpression,
+        position: Position = None,
     ) -> None:
-        super().__init__(main_object, property)
+        super().__init__(main_object, property, position)
 
 
 class OptionalPropertyAccessExpression(InfixExpression):
@@ -186,21 +229,23 @@ class OptionalPropertyAccessExpression(InfixExpression):
         self,
         main_object: FunctionCallExpression | IdentifierExpression,
         property: FunctionCallExpression | IdentifierExpression,
+        position: Position = None,
     ) -> None:
-        super().__init__(main_object, property)
+        super().__init__(main_object, property, position)
 
 
 class IStatement:
-    def __init__(self) -> None:
-        pass
+    def __init__(self, position: Position = None) -> None:
+        self.position: Position = position
 
     def __eq__(self, other):
         return type(self) == type(other)
 
 
 class BlockStatement:
-    def __init__(self, statements: list[IStatement]) -> None:
+    def __init__(self, statements: list[IStatement], position: Position = None) -> None:
         self.statements: list[IStatement] = statements
+        self.position: Position = position
 
     def __eq__(self, other):
         if isinstance(other, BlockStatement):
@@ -209,7 +254,10 @@ class BlockStatement:
 
 
 class ConditionalStatement(IStatement):
-    def __init__(self, condition: IExpression, block: BlockStatement) -> None:
+    def __init__(
+        self, condition: IExpression, block: BlockStatement, position: Position = None
+    ) -> None:
+        super().__init__(position)
         self.condition: IExpression = condition
         self.block: BlockStatement = block
 
@@ -230,8 +278,9 @@ class IfStatement(ConditionalStatement):
         block: BlockStatement,
         elif_statements: list[ConditionalStatement] = [],
         else_statement: BlockStatement = None,
+        position: Position = None,
     ) -> None:
-        super().__init__(condition, block)
+        super().__init__(condition, block, position)
         self.elif_statements: list[BlockStatement] = elif_statements
         self.else_statement: BlockStatement = else_statement
 
@@ -243,8 +292,10 @@ class IfStatement(ConditionalStatement):
 
 
 class WhileStatement(ConditionalStatement):
-    def __init__(self, condition: IExpression, block: BlockStatement) -> None:
-        super().__init__(condition, block)
+    def __init__(
+        self, condition: IExpression, block: BlockStatement, position: Position = None
+    ) -> None:
+        super().__init__(condition, block, position)
 
 
 class ForStatement(IStatement):
@@ -253,7 +304,9 @@ class ForStatement(IStatement):
         variable_name: str,
         iterable: IExpression,
         block: BlockStatement,
+        position: Position = None,
     ) -> None:
+        super().__init__(position)
         self.variable_name: str = variable_name
         self.iterable: IExpression = iterable
         self.block: BlockStatement = block
@@ -270,7 +323,10 @@ class ForStatement(IStatement):
 
 
 class ReturnStatement(IStatement):
-    def __init__(self, expression: IExpression = None) -> None:
+    def __init__(
+        self, expression: IExpression = None, position: Position = None
+    ) -> None:
+        super().__init__(position)
         self.expression: IExpression = expression
 
     def __eq__(self, other):
@@ -280,7 +336,13 @@ class ReturnStatement(IStatement):
 
 
 class AssignmentStatement(IStatement):
-    def __init__(self, variable: IdentifierExpression, expression: IExpression) -> None:
+    def __init__(
+        self,
+        variable: IdentifierExpression,
+        expression: IExpression,
+        position: Position = None,
+    ) -> None:
+        super().__init__(position)
         self.variable: IdentifierExpression = variable
         self.expression: IExpression = expression
 
@@ -295,28 +357,53 @@ class AssignmentStatement(IStatement):
 
 
 class AssignmentPlusStatement(AssignmentStatement):
-    def __init__(self, variable: IdentifierExpression, expression: IExpression) -> None:
-        super().__init__(variable, expression)
+    def __init__(
+        self,
+        variable: IdentifierExpression,
+        expression: IExpression,
+        position: Position = None,
+    ) -> None:
+        super().__init__(variable, expression, position)
 
 
 class AssignmentMinusStatement(AssignmentStatement):
-    def __init__(self, variable: IdentifierExpression, expression: IExpression) -> None:
-        super().__init__(variable, expression)
+    def __init__(
+        self,
+        variable: IdentifierExpression,
+        expression: IExpression,
+        position: Position = None,
+    ) -> None:
+        super().__init__(variable, expression, position)
 
 
 class AssignmentMultiplyStatement(AssignmentStatement):
-    def __init__(self, variable: IdentifierExpression, expression: IExpression) -> None:
-        super().__init__(variable, expression)
+    def __init__(
+        self,
+        variable: IdentifierExpression,
+        expression: IExpression,
+        position: Position = None,
+    ) -> None:
+        super().__init__(variable, expression, position)
 
 
 class AssignmentDivideStatement(AssignmentStatement):
-    def __init__(self, variable: IdentifierExpression, expression: IExpression) -> None:
-        super().__init__(variable, expression)
+    def __init__(
+        self,
+        variable: IdentifierExpression,
+        expression: IExpression,
+        position: Position = None,
+    ) -> None:
+        super().__init__(variable, expression, position)
 
 
 class AssignmentModuloStatement(AssignmentStatement):
-    def __init__(self, variable: IdentifierExpression, expression: IExpression) -> None:
-        super().__init__(variable, expression)
+    def __init__(
+        self,
+        variable: IdentifierExpression,
+        expression: IExpression,
+        position: Position = None,
+    ) -> None:
+        super().__init__(variable, expression, position)
 
 
 class CatchStatement(IStatement):
@@ -325,7 +412,9 @@ class CatchStatement(IStatement):
         catch_statement: BlockStatement,
         error_types: list[IdentifierExpression] = [],
         error_var: IdentifierExpression = None,
+        position: Position = None,
     ) -> None:
+        super().__init__(position)
         self.catch_statement: BlockStatement = catch_statement
         self.error_types: list[IdentifierExpression] = error_types
         self.error_var: IdentifierExpression = error_var
@@ -346,7 +435,9 @@ class TryCatchStatement(IStatement):
         self,
         try_statement: BlockStatement,
         catch_statements: list[CatchStatement],
+        position: Position = None,
     ) -> None:
+        super().__init__(position)
         self.try_statement: BlockStatement = try_statement
         self.catch_statements: list[CatchStatement] = catch_statements
 
@@ -361,34 +452,28 @@ class TryCatchStatement(IStatement):
 
 
 class ThrowStatement(IStatement):
-    def __init__(self, expression: IExpression) -> None:
+    def __init__(self, expression: IExpression, position: Position = None) -> None:
+        super().__init__(position)
         self.expression: IExpression = expression
 
 
 class BreakStatement(IStatement):
-    def __init__(self) -> None:
-        pass
+    def __init__(self, position: Position = None) -> None:
+        super().__init__(position)
 
 
 class ContinueStatement(IStatement):
-    def __init__(self) -> None:
-        pass
-
-
-class Comment(IStatement):
-    def __init__(self, comment: str) -> None:
-        self.comment: str = comment
-
-    def __eq__(self, other):
-        if isinstance(other, Comment):
-            return self.comment == other.comment
-        return False
+    def __init__(self, position: Position = None) -> None:
+        super().__init__(position)
 
 
 class Argument:
-    def __init__(self, value: IExpression, is_reference: bool = False) -> None:
+    def __init__(
+        self, value: IExpression, is_reference: bool = False, position: Position = None
+    ) -> None:
         self.value: IExpression = value
         self.is_reference: bool = is_reference
+        self.position: Position = position
 
     def __eq__(self, other):
         if isinstance(other, Argument):
@@ -402,10 +487,12 @@ class Parameter:
         name: str,
         is_optional: bool = False,
         value: LiteralExpression = None,
+        position: Position = None,
     ) -> None:
         self.name: str = name
         self.is_optional: bool = is_optional
         self.value: LiteralExpression = value
+        self.position: Position = position
 
     def __eq__(self, other):
         if isinstance(other, Parameter):
@@ -422,9 +509,11 @@ class FunctionDef:
         self,
         parameters: list[Parameter],
         block: BlockStatement,
+        position: Position = None,
     ) -> None:
         self.parameters: list[Parameter] = parameters
         self.block: BlockStatement = block
+        self.position: Position = position
 
     def __eq__(self, other):
         if isinstance(other, FunctionDef):
