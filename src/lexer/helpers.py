@@ -33,6 +33,9 @@ keywords: Dict[str, TokenType] = {
     "null": TokenType.T_NULL,
     # Operators
     "is": TokenType.T_TYPE_CHECK,
+    "try": TokenType.T_TRY,
+    "catch": TokenType.T_CATCH,
+    "throw": TokenType.T_THROW,
 }
 
 maybe_two_char_token: Dict[str, tuple] = {

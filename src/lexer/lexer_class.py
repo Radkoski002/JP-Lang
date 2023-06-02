@@ -170,7 +170,6 @@ class Lexer:
         if escaped_char := escaped_chars.get(self.current_char):
             temp_char = escaped_char
         else:
-            # TODO Add edge cases handling
             temp_char = self.current_char
         return temp_char
 
@@ -203,7 +202,7 @@ class Lexer:
         if self.current_char != "#":
             return None
         current_line = self.current_position.line
-        temp_comment = [self.current_char]
+        temp_comment = []
         self.__advance()
         while (
             self.current_char not in end_of_file_chars

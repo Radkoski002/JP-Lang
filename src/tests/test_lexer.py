@@ -2,10 +2,10 @@ import io
 import pytest
 
 from lexer.token_type_enum import TokenType
-from src.lexer.config import LEXER_CONFIG
-from src.lexer.lexer_class import Lexer
-from src.lexer.lexer_error_class import LEXER_ERROR_TYPES
-from src.utils.error_handler_class import ErrorHandler
+from lexer.config import LEXER_CONFIG
+from lexer.lexer_class import Lexer
+from lexer.lexer_error_class import LEXER_ERROR_TYPES
+from utils.error_handler_class import ErrorHandler
 
 
 def test_init():
@@ -37,6 +37,10 @@ def test_init():
         (TokenType.T_ELSE, "else", "else"),
         (TokenType.T_WHILE, "while", "while"),
         (TokenType.T_FOR, "for", "for"),
+        (TokenType.T_TYPE_CHECK, "is", "is"),
+        (TokenType.T_TRY, "try", "try"),
+        (TokenType.T_CATCH, "catch", "catch"),
+        (TokenType.T_THROW, "throw", "throw"),
         (TokenType.T_TRUE, "true", "true"),
         (TokenType.T_FALSE, "false", "false"),
         (TokenType.T_NULL, "null", "null"),
@@ -79,7 +83,7 @@ def test_init():
         (TokenType.T_COMMA, ",", ","),
         (TokenType.T_COLON, ":", ":"),
         (TokenType.T_OPTIONAL, "?", "?"),
-        (TokenType.T_COMMENT, "# comment", "# comment"),
+        (TokenType.T_COMMENT, "# comment", " comment"),
     ],
 )
 def test_if_valid_tokens(input, expected_token, expected_value):
