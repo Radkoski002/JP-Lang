@@ -189,7 +189,7 @@ def test_function_parameters(input, result):
         ),
         (
             r"1 is Int",
-            TypeCheckExpression(IntegerLiteral(1), IdentifierExpression("Int")),
+            TypeCheckExpression(IntegerLiteral(1), "Int"),
         ),
         (r"x", IdentifierExpression("x")),
         (r"x()", FunctionCallExpression("x", [])),

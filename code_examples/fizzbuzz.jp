@@ -10,8 +10,8 @@ fizzBuzz(n) {
         } else {
             print(index);
         }
+        index += 1;
     }
-    index += 1;
 }
 
 main() {

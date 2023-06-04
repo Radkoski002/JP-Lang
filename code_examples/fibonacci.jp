@@ -9,5 +9,5 @@ fibonacci(n) {
 }
 
 main() {
-    print(fibonacci(10));
+    print(fibonacci(9));
 }

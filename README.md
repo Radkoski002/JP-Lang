@@ -60,7 +60,7 @@ Priorytety operatorów są uzależnione on zakresu w jakim się znajdują.
 
 1. Operator dostępu do elementu obiektu (., ?.)
 2. Operator sprawdzenia typu (is)
-3. Operator negacj (!)
+3. Operator negacj (!, -)
 4. Operatory multiplikatywne (\*, /, %)
 5. Operatory adytywne (+, -)
 6. Operatory porównania (==, !=, <, >, <=, >=)
