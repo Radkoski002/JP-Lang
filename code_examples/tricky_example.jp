@@ -1,6 +1,6 @@
 fun(x) {
-    x = 1;
-    return 1;
+    x = 10;
+    return 10;
 }
 
 fun1(y) {
@@ -13,7 +13,9 @@ main() {
   c;
   e;
 
-  a = fun(@b) + fun1(@c) * b + e?.arg;
+  
+  a = fun(@b) + fun1(@c) * b + 1;
+  print(a);
 }
 
 # In this example program will go like that
@@ -21,29 +23,11 @@ main() {
 # 1. Initialization of b with null
 # 2. Initialization of c with null
 # 3. Initialization of e with null
-# 4. fun1(@c) call
-# 5. c value change to 2
-# 6. fun1 returns 2
-# 7. Evaluate 2 * null 
-# 8. Throw an error because you cant multiply 2 by null
-#
-# A bit modified version:
-
-main2() {
-  b = 1;
-  c;
-  e;
-
-  a = fun(@b) + fun1(@c) * b + e?.arg;
-}
-
-# Continuing from point 6:
-#
-# 7. Evaluate 2 * 1
-# 8. fun(@b) call
-# 9. b value change to 1
-# 10. fun1 returns 1
-# 11. Evaluate 1 + 2
-# 12. Access arg property of null
-# 13. Throw an error because null doesn't have arg property
-
+# 4. fun(@b) call
+# 5. b value change to 10
+# 6. fun1 returns 10
+# 7. fun1(@c) call
+# 8. c value change to 2
+# 9. Evaluate 2 * 10
+# 11. Evaluate 10 + 20 + 1
+# 12. Print 31

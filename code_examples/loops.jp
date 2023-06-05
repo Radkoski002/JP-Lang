@@ -3,11 +3,11 @@ main() {
 
     sum = 0;
 
-    print(sum)
+    print(sum);
     for(i: x) {
         sum += i;
     }
-    print(sum)
+    print(sum);
 
     while(true) {
         sum -= 1;
@@ -15,5 +15,5 @@ main() {
             break;
         }
     }
-    print(sum)
+    print(sum);
 }

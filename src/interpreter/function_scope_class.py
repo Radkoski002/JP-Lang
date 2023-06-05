@@ -1,5 +1,6 @@
 class FunctionScope:
     def __init__(self):
+        self.references: dict[str, str] = {}
         self.variables: dict[str, any] = {}
         self.variables_stack: list[str] = []
         self.variables_in_scope: list[int] = []
@@ -23,9 +24,11 @@ class FunctionScope:
         self.__expect_variable(name)
         return self.get_variable(name)
 
-    def set_variable(self, name: str, value: any):
+    def set_variable(self, name: str, value: any, reference: str = False):
         if not name in self.variables:
             self.__add_variable_to_scope(name)
+        if reference:
+            self.references[reference] = name
         self.variables[name] = value
 
     def expect_and_set_variable(self, name: str, value: any = None) -> any:

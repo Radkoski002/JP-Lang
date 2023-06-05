@@ -5,6 +5,7 @@ from interpreter.interpreter_class import Interpreter
 from lexer.lexer_class import Lexer
 from parser.parser_class import Parser
 from utils.error_handler_class import ErrorHandler
+from interpreter.interpreter_error_classes import *
 
 
 def functions_template(functions: list[str]):
@@ -12,9 +13,9 @@ def functions_template(functions: list[str]):
     return f"""{functions}"""
 
 
-def funcion_template(name, statements: list[str]):
+def funcion_template(name, statements: list[str], arguments=""):
     statements = "\n".join([f"    {statement}" for statement in statements])
-    return f"""{name}() {{
+    return f"""{name}({arguments}) {{
     {statements}
 }}"""
 
@@ -44,7 +45,7 @@ def interpreter_init(body: list[str]):
         lexer = Lexer(stream_provider, error_handler)
         parser = Parser(lexer)
         program = parser.parse()
-        interpreter = Interpreter()
+        interpreter = Interpreter(error_handler)
         interpreter.visit(program)
     return error_handler
 
@@ -256,3 +257,196 @@ def test_variable_change_expressions(capsys, init_value, expression, expected):
     out = capsys.readouterr()
     assert out.out == expected
     assert len(error_handler.errors) == 0
+
+
+@pytest.mark.parametrize(
+    "function_names, function_bodies, function_args,expected",
+    [
+        (
+            ["main", "test"],
+            [["test();"], ["print(1);"]],
+            ["", ""],
+            "1 \n",
+        )
+    ],
+)
+def test_function_calls(
+    capsys, function_names, function_bodies, function_args, expected
+):
+    templates = [
+        funcion_template(
+            function_name,
+            function_body,
+            function_arg,
+        )
+        for function_name, function_body, function_arg in zip(
+            function_names, function_bodies, function_args
+        )
+    ]
+    error_handler = interpreter_init(templates)
+    out = capsys.readouterr()
+    assert out.out == expected
+    assert len(error_handler.errors) == 0
+
+
+@pytest.mark.parametrize(
+    "expression, expected",
+    [
+        (
+            'x = 1 + "a";',
+            TypeError,
+        ),
+        (
+            'x = 1 - "a";',
+            TypeError,
+        ),
+        (
+            'x = 1 * "a";',
+            TypeError,
+        ),
+        (
+            'x = 1 / "a";',
+            TypeError,
+        ),
+        (
+            'x = 1 % "a";',
+            TypeError,
+        ),
+        (
+            'x = 1.0 + "a";',
+            TypeError,
+        ),
+        (
+            "x = 1.0 + true;",
+            TypeError,
+        ),
+        (
+            "x = 1.0 + false;",
+            TypeError,
+        ),
+        (
+            "x = 1.0 + Array();",
+            TypeError,
+        ),
+        (
+            "x = 1.0 + null;",
+            TypeError,
+        ),
+        (
+            "x = 1 & 1;",
+            TypeError,
+        ),
+        (
+            'x = "a" & 1;',
+            TypeError,
+        ),
+        (
+            "x = 1 | 1;",
+            TypeError,
+        ),
+        (
+            'x = "a" | 1;',
+            TypeError,
+        ),
+        (
+            'x = !"a";',
+            TypeError,
+        ),
+        (
+            "x = !1;",
+            TypeError,
+        ),
+        (
+            "x = -true",
+            TypeError,
+        ),
+        (
+            'x = -"a"',
+            TypeError,
+        ),
+        (
+            "x += 1;",
+            VariableError,
+        ),
+        (
+            "x -= 1;",
+            VariableError,
+        ),
+        (
+            "x *= 1;",
+            VariableError,
+        ),
+        (
+            "x /= 1;",
+            VariableError,
+        ),
+        (
+            "x %= 1;",
+            VariableError,
+        ),
+        (
+            "test();",
+            FunctionError,
+        ),
+        (
+            "Student().test;",
+            PropertyError,
+        ),
+        (
+            "Student().test();",
+            PropertyError,
+        ),
+        ('Student("a", "a", "a", "a");', PropertyError),
+    ],
+)
+def test_oneliner_errors(expression, expected):
+    template = funcion_template(
+        "main",
+        [expression],
+    )
+    with pytest.raises(SystemExit) as pytest_wrapped_e:
+        error_handler = interpreter_init([template])
+        assert pytest_wrapped_e.type == SystemExit
+        assert pytest_wrapped_e.value.code == 1
+        assert len(error_handler.errors) == 1
+        assert isinstance(error_handler.errors[0], expected)
+
+
+@pytest.mark.parametrize(
+    "function_names, function_bodies, function_args, expected",
+    [
+        ([], [], [], RuntimeError),
+        (["test"], ["x = 1;"], [], RuntimeError),
+        (["main", "test"], ["test(1);", ""], ["", ""], ArgumentError),
+        (["main", "test"], ["test();", ""], ["", "1"], ArgumentError),
+        (
+            ["main", "test"],
+            ["test();", 'throw ArgumentError("test")'],
+            ["", ""],
+            ArgumentError,
+        ),
+        (
+            ["main", "test"],
+            ["test();", "x += 1;"],
+            ["", ""],
+            VariableError,
+        ),
+    ],
+)
+def test_function_call_errors(function_names, function_bodies, function_args, expected):
+    templates = [
+        funcion_template(
+            function_name,
+            [function_body],
+            function_arg,
+        )
+        for function_name, function_body, function_arg in zip(
+            function_names, function_bodies, function_args
+        )
+    ]
+    with pytest.raises(SystemExit) as pytest_wrapped_e:
+        error_handler = interpreter_init(templates)
+        assert pytest_wrapped_e.type == SystemExit
+        assert pytest_wrapped_e.value.code == 1
+        assert len(error_handler.errors) == 1
+        assert isinstance(error_handler.errors[0], expected)

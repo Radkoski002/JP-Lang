@@ -4,7 +4,7 @@ from functools import singledispatch
 
 from parser.statement_classes import *
 from program.program_class import Program
-from interpreter.built_in_functions import BuiltInFunction
+from interpreter.built_in_functions import BuiltInFunction, ErrorConstructor
 
 
 class IVisitor(ABC):

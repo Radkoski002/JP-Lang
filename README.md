@@ -1,7 +1,7 @@
 # JP - Język Programowania
 
 - Radosław Kostrzewski, 310757
-- Gitlab: @rkosrze
+- Gitlab: @rkostrze
 
 ## Wymagania
 
@@ -15,17 +15,17 @@
     - Przechwycenie wyjątku bez dostępu do szczegółowych informacji
     - Przechwycenie wyjątku po jednym lub kilku typach z dostępem do szczegółowych informacji
 - Każde wyrażenie musi zakończyć się średnikiem
-- Rzutowanie na inne typy odbywa się poprzez wywołanie konstruktora typu
-- Gdy zmienna zostanie zadeklarowana ponownie w tym samym scopie zostanie ona zastąpiona nową wartością. Wyjątkiem są zmienne tworzone przy łapaniu wyjątku oraz przy tworzeniu pętli for, wtedy zostanie zgłoszony błąd.
-- Gdy funkcja zostanie zadeklarowana ponownie w tym samym scopie zostanie zgłoszony błąd
+- Gdy zmienna zostanie zadeklarowana ponownie w tym samym scopie zostanie ona zastąpiona nową wartością.
+- Gdy funkcja zostanie zadeklarowana ponownie zostanie zgłoszony błąd
 - Po wyjściu ze scopu identyfikator zostaje usunięty
+- Wymagana jest funkcja main
 
 ### Wbudowane typy
 
 - Podstawowe typy
   - int
   - float
-  - string
+  - str
   - bool
   - null
 - Typy złożone
@@ -40,18 +40,29 @@
       - size()
       - contains(element)
       - indexOf(element)
+  - Student(name, surname, age)
 
+### Typy błędów
+
+Każdy błąd posiada informacje o linii i kolumnie w których wystąpił.
+
+- Error - Klasa bazowa
+- ArgumentError
+- TypeError
+- ExpressionError
+- VariableError
+- RuntimeError
+- PropertyError
+- FunctionError
+  
 ### Wbudowane funkcje
 
-- print(args); - wypisuje na ekranie wartości przekazane jako argumenty
-- read(); - odczytuje wartość z konsoli i zwraca ją jako string
-- exit(); - zamyka program
+- print(args); - wypisuje na ekranie wartości przekazane jako argumenty oddzielone przecinkami
 
 ### Właściwości zmiennych
 
 - Wszystkie zmienne są nullowalne
 - Zmienne domyślnie są typu null i są mutowalne
-- Zmienne mogą być typu const, wtedy ich wartość nie może zostać zmieniona. Gdy zmienna jest const należy ją zainicjalizować przy jej tworzeniu.
 
 ### Operatory i ich priorytety
 
@@ -96,7 +107,7 @@ Konstruktor klasy błędu będzie zawierał dwa opcjonalne pola, pierwszym będz
 
 Error message będzie wyglądał mniej więcej tak:
 
-`[ARGUMENT ERROR]` Argument x cannot be negative. Value of x is: -1 in x:y -> **throw ArgumentError("x cannot be negative", x);**
+`[ArgumentError]` Argument x cannot be negative. Value of x is: -1 in line x column y
 
 ### Wyłapywanie wyjątków
 
@@ -108,9 +119,9 @@ Słowo catch z argumentem typu Error będzie przechwytywało każdy wyjątek i z
 
 Słowo catch z argumentem o szczegółowym typie błędu będzie przechwytywało wyjątek tego samego typu co argument i zapisze jego szczegółowe informacje w tym argumencie.
 
-Możemy przechwycić wiele wyjątków w jednym bloku catch.
+Możemy przechwycić wiele typów wyjątków w jednym bloku catch.
 
-Może być wiele słów kluczowych catch w jednym bloku try.
+Może być wiele słów kluczowych catch po jednym bloku try.
 
 Wyjątek rzucony w scopie występującym po słowie kluczowym catch musi zostać obsłużony oddzielnie.
 
@@ -120,93 +131,135 @@ Wyjątek rzucony w scopie występującym po słowie kluczowym catch musi zostać
 
 ## Analiza leksykalna
 
-Analizator leksykalny (Lexer) jest częścią kompilatora odpowiedzialną za podział kodu źródłowego na tokeny. Lexer będzie działał leniwie, czyli będzie odczytywał kod znak po znaku i tworzył tokeny dopiero gdy będzie miał wystarczającą ilość znaków do stworzenia tokena.
+Analizator leksykalny (Lexer) jest częścią kompilatora odpowiedzialną za podział kodu źródłowego na tokeny. Lexer będzie działał leniwie, czyli będzie odczytywał kod znak po znaku i tworzył tokeny dopiero gdy będzie miał wystarczającą ilość znaków do stworzenia tokenu. Należało wprowadzić ograiczenia na długość tokenów, aby nie było możliwe stworzenie nieskończenie długiego tokenu.
+
+### Testy
+
+Testowanie polegało na sprawdzeniu czy odpowiedni ciąg znaków zostanie rozpoznany jako odpowiedni token. Testy zostały podzielone na 5 kategorii:
+
+- Test inicjalizacji - sprawdza czy lexer został poprawnie zainicjalizowany
+- Testy pojedynczych tokenów - sprawdzają czy ciąg znaków zostanie rozpoznany jako poprawny token
+- Testy pozycji - sprawdzają czy podczas analizy leksykalnej pozycje tokenów są poprawnie zapisywane
+- Testy escape'ów - sprawdzają czy znaki escapowane są poprawnie interpretowane
+- Testy błędów - sprawdzają czy błędne ciągi znaków zostaną rozpoznane jako odpowiedni błąd
 
 ### Tokeny
 
 ```python
 class TokenType(Enum):
     # --- Literals ---
-    T_INT_LITERAL = 256
-    T_FLOAT_LITERAL = 257
-    T_STRING_LITERAL = 258
-    T_BOOL_LITERAL = 259
-    T_NULL_LITERAL = 260
+    T_INT_LITERAL = "int"
+    T_FLOAT_LITERAL = "float"
+    T_STRING_LITERAL = "string"
 
-    # --- Functions ---
-    T_RETURN = 261
-    T_BREAK = 262
-    T_CONTINUE = 263
+    # --- Keywords ---
 
-    # --- Statements ---
-    T_IF = 264
-    T_ELSE = 265
-    T_WHILE = 266
-    T_FOR = 267
+    # ------ Functions ------
+    T_RETURN = "return"
+    T_BREAK = "break"
+    T_CONTINUE = "continue"
+    T_TRY = "try"
+    T_CATCH = "catch"
+    T_THROW = "throw"
+
+    # ------ Statements ------
+    T_IF = "if"
+    T_ELIF = "elif"
+    T_ELSE = "else"
+    T_WHILE = "while"
+    T_FOR = "for"
+
+    # ------ Literals ------
+    T_TRUE = "true"
+    T_FALSE = "false"
+    T_NULL = "null"
 
     # --- Operators ---
 
     # ------ Arithmetic ------
-    T_PLUS = 268 # +
-    T_MINUS = 269 # -
-    T_MULTIPLY = 270 # *
-    T_DIVIDE = 271 # /
-    T_MODULO = 272 # %
+    T_PLUS = "+"
+    T_MINUS = "-"
+    T_MULTIPLY = "*"
+    T_DIVIDE = "/"
+    T_MODULO = "%"
 
     # ------ Assignment ------
-    T_ASSIGN = 273 # =
-    T_ASSIGN_PLUS = 274 # +=
-    T_ASSIGN_MINUS = 275 # -=
-    T_ASSIGN_MULTIPLY = 276 # *=
-    T_ASSIGN_DIVIDE = 277 # /=
-    T_ASSIGN_MODULO = 278 # %=
+    T_ASSIGN = "="
+    T_ASSIGN_PLUS = "+="
+    T_ASSIGN_MINUS = "-="
+    T_ASSIGN_MULTIPLY = "*="
+    T_ASSIGN_DIVIDE = "/="
+    T_ASSIGN_MODULO = "%="
 
     # ------ Comparison ------
-    T_GREATER = 279 # >
-    T_LESS = 280 # <
-    T_GREATER_EQUAL = 281 # >=
-    T_LESS_EQUAL = 282 # <=
-    T_EQUAL = 283 # ==
-    T_NOT_EQUAL = 284 # !=
+    T_GREATER = ">"
+    T_LESS = "<"
+    T_GREATER_EQUAL = ">="
+    T_LESS_EQUAL = "<="
+    T_EQUAL = "=="
+    T_NOT_EQUAL = "!="
 
     # ------ Logic ------
-    T_AND = 285 # &
-    T_OR = 286 # |
+    T_AND = "&"
+    T_OR = "|"
 
     # ------ Access ------
-    T_ACCESS = 287 # .
-    T_NULLABLE_ACCESS = 288 # ?.
+    T_ACCESS = "."
+    T_NULLABLE_ACCESS = "?."
 
     # ------ Other ------
-    T_NOT = 289 # !
-    T_REF = 290 # @
+    T_NOT = "!"
+    T_REF = "@"
+    T_TYPE_CHECK = "is"
 
     # --- Brackets ---
-    T_LEFT_BRACKET = 291 # (
-    T_RIGHT_BRACKET = 292 # )
-    T_LEFT_CURLY_BRACKET = 293 # {
-    T_RIGHT_CURLY_BRACKET = 294 # }
+    T_LEFT_BRACKET = "("
+    T_RIGHT_BRACKET = ")"
+    T_LEFT_CURLY_BRACKET = "{"
+    T_RIGHT_CURLY_BRACKET = "}"
 
     # --- Other ---
-    T_IDENTIFIER = 295
-    T_SEMICOLON = 296 # ;
-    T_COMMA = 297 # ,
-    T_COLON = 298 # :
-    T_COMMENT = 299 # #
-    T_OPTIONAL = 300 # ?
-    T_EOF = 301
+    T_IDENTIFIER = "id"
+    T_SEMICOLON = ";"
+    T_COMMA = ","
+    T_COLON = ":"
+    T_COMMENT = "#"
+    T_OPTIONAL = "?"
+    T_UNDEFINED = "undefined"
+    T_EOF = "eof"
+
 
 ```
 
 ## Analiza składniowa
 
 Analizator składniowy (Parser) jest częścią kompilatora odpowiedzialną za sprawdzenie poprawności składni kodu źródłowego.
-Parser będzie będzie odczytywał tokeny jedne po drugim i tworzył drzewo składniowe.
+Parser odczytuje tokeny jeden po drugim i tworzy drzewo składniowe. Parser przyjmuje lexer jako argument konstruktora i używa go do konsumowania tokenów. Każde wyrażenie będzie miało swoją metodę konstuującą obiekt drzewa składniowego. Parser posiada metodę `parse` która będzie zwracała drzewo składniowe.
+
+### Testy
+
+Testowanie polegało na sprawdzeniu czy odpowiedni ciąg znaków zostanie zinterpretowany jako poprawne drzewo obiektów. Testy zostały podzielone na 6 kategorii:
+
+- Test inicjalizacji - sprawdza czy praser został poprawnie zainicjalizowany
+- Testy poszczególnych statementów - sprawdzają czy ciąg znaków zostanie rozpoznany jako poprawny statement
+- Testy poszczególnych wyrażeń - sprawdzają czy ciąg znaków zostanie rozpoznany jako poprawne expression
+- Testy operatora dostępu - sprawdzają czy ciąg znaków zostanie rozpoznany jako poprawnie skonstruowana klasa operacji dostępu
+- Testy parametrów funkcji - sprawdzają czy ciąg znaków zostanie rozpoznany jako poprawnie skonstruowana lista parametrów funkcji
+- Testy błędów - sprawdzają czy błędne ciągi znaków zostaną rozpoznane jako odpowiedni błąd
 
 ## Interpreter
 
 Interpreter jest częścią kompilatora odpowiedzialną za wykonanie kodu źródłowego.
-Interpreter będzie wykonywał kod źródłowy w oparciu o drzewo składniowe.
+Interpreter wykonuje kod źródłowy w oparciu o drzewo składniowe.
+Działa to na takiej zasadze, że interpreter przechodzi po drzewie składniowym i wykonuje odpowiednie akcje w zależności od tego jakie węzły drzewa składniowego napotka.
+Implementacja interpretera została oparta na wzorcu wizytatora.
+
+### Testy
+
+Testownie polegało na sprawdzeniu czy odpowiedni ciąg znaków zostanie zinterpretowany jako poprawny wynik. Kategorii testów było wiele ale można rodzielić dwie głównie kategorie:
+
+- Testy poprawnych programów - sprawdzają czy program zostanie poprawnie wykonany
+- Testy błędów - sprawdzają czy w błędnie napisanym programie zostanie rozpoznany odpowiedni błąd
 
 ## Gramatyka
 
@@ -229,7 +282,7 @@ Aby uruchomić interpreter należy uruchomić skrypt pythonowy interpretera.
 Interpreter będzie uruchamiany za pomocą komendy:
 
 ```bash
-./interpreter.py [plik]
+./main.py [plik]
 ```
 
 ## Przykładowe programy
@@ -238,25 +291,12 @@ Przykładowe programy będą umieszczone w folderze `code_examples`.
 
 ## Przykładowe wbudowane błędy
 
-`[ARGUMENT ERROR]` Mandatory argument of function **addOne(x)** wasn't privided in x:y -> **addOne();**
+[LEXER ERROR - UNKNOWN_TOKEN]: Unknown token at line 2, column 15: ^
 
-Dla kodu:
+[PARSER ERROR - MISSING_SEMICOLON]: Missing semicolon at line 3, column 1
 
-```jp
-addOne(x) {
-    return x + 1;
-}
+[PARSER ERROR - MISSING_BLOCK_END]: Missing block end at line 2, column 15
 
-addOne();
-```
+[TypeError]: Cannot apply operator + to given values: 1 and a at line 2 column 11
 
-`[ERROR]` Missing semicolon in x:y -> **x = 2**
-
-`[ERROR]` Use of unknown variable in x:y -> **x = y + 2;**
-
-Dla kodu:
-
-```jp
-x = 2;
-x = y + 2;
-```
+[FunctionError]: Function test is not defined at line 2 column 5

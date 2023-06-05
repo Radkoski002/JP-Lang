@@ -12,7 +12,7 @@ if TYPE_CHECKING:
 
 class BuiltInFunction(ABC):
     name: str
-    argc: int = 0
+    argc: int | None = None
 
     @abstractmethod
     def execute(self, args):
@@ -57,7 +57,7 @@ class ErrorConstructor(BuiltInFunction):
         self.name = constructor.__name__
 
     def execute(self, args: list[any]):
-        return self._constructor(args[0])
+        return self._constructor(*args)
 
 
 def get_built_in_functions() -> dict[str, BuiltInFunction]:

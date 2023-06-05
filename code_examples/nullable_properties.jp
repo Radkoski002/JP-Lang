@@ -9,6 +9,6 @@ main() {
         if(stud?.age == null) {
             print("Student doesn't have age information");
         }
-        print(stud.name, " ", stud.surname, " ", stud?.age);
+        print(stud.name, stud.surname, stud?.age);
     }
 }

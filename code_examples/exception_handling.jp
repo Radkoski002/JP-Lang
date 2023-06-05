@@ -19,16 +19,16 @@ main(){
         print(addOneToPositiveNum(-1));
     } catch (Error e) {
         print("Something went wrong...");
-        print("Error message: ", e?.msg);
-        print("Error arguments: ", e?.arg);
+        print("Error message: ", e?.message);
+        print("Error arguments: ", e?.args);
     }
 
     try {
         print(addOneToPositiveNum(-1));
     } 
     catch (ArgumentError e) {
-        if (e?.arg is int) {
-            print(addOneToPositiveNum(e?.arg * -1));
+        if (e?.args?.get(0) is int) {
+            print(addOneToPositiveNum(e?.args?.get(0) * -1));
         }
     }
 
@@ -37,7 +37,7 @@ main(){
     } 
     catch (ArgumentError | TypeError e) {
         print("There was an error with arguments");
-        print("Error message: ", e?.msg);
-        print("Error arguments: ", e?.arg);
+        print("Error message: ", e?.message);
+        print("Error arguments: ", e?.args);
     }
 }
