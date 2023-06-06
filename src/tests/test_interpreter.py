@@ -9,31 +9,26 @@ from interpreter.interpreter_error_classes import *
 
 
 def functions_template(functions: list[str]):
-    functions = "\n".join([f"    {function};" for function in functions])
+    functions = "\n".join([f"    {function}" for function in functions])
     return f"""{functions}"""
 
 
 def funcion_template(name, statements: list[str], arguments=""):
     statements = "\n".join([f"    {statement}" for statement in statements])
-    return f"""{name}({arguments}) {{
+    return f"""
+    {name}({arguments}) {{
     {statements}
 }}"""
 
 
-def if_template(condition, body):
-    return f"""if ({condition}) {{
+def conditional_template(name, condition, body):
+    return f"""{name} ({condition}) {{
     {body}
 }}"""
 
 
-def elif_template(condition, body):
-    return f"""elif ({condition}) {{
-    {body}
-}}"""
-
-
-def else_template(body):
-    return f"""else {{
+def block_template(name, body):
+    return f"""{name} {{
     {body}
 }}"""
 
@@ -131,7 +126,7 @@ def test_init():
 def test_base_expressions(input, expected, capsys):
     error_handler = interpreter_init([funcion_template("main", [f"print({input});"])])
     out = capsys.readouterr()
-    assert out.out == f"{expected} \n"
+    assert out.out == f"{expected}\n"
     assert len(error_handler.errors) == 0
 
 
@@ -154,51 +149,57 @@ def test_base_expressions(input, expected, capsys):
     ],
 )
 def test_if_statement(capsys, condition):
-    template = funcion_template("main", [if_template(condition, "print(1);")])
+    template = funcion_template(
+        "main", [conditional_template("if", condition, "print(1);")]
+    )
     error_handler = interpreter_init([template])
     out = capsys.readouterr()
-    assert out.out == "1 \n"
+    assert out.out == "1\n"
     assert len(error_handler.errors) == 0
 
 
 @pytest.mark.parametrize(
     "condition, expected",
     [
-        ("true", "1 \n"),
-        ("1 > 0", "1 \n"),
-        ("1 < 2", "1 \n"),
-        ("1 >= 1", "1 \n"),
-        ("1 <= 1", "1 \n"),
-        ("1 == 1", "1 \n"),
-        ("1 != 2", "1 \n"),
-        ("1.0 > 0.0", "1 \n"),
-        ("1.0 < 2.0", "1 \n"),
-        ("1.0 >= 1.0", "1 \n"),
-        ("1.0 <= 1.0", "1 \n"),
-        ("1.0 == 1.0", "1 \n"),
-        ("1.0 != 2.0", "1 \n"),
-        ("false", "2 \n"),
-        ("1 > 2", "2 \n"),
-        ("1 < 0", "2 \n"),
-        ("1 >= 2", "2 \n"),
-        ("1 <= 0", "2 \n"),
-        ("1 == 2", "2 \n"),
-        ("1 != 1", "2 \n"),
-        ("1.0 > 2.0", "2 \n"),
-        ("1.0 < 0.0", "2 \n"),
-        ("1.0 >= 2.0", "2 \n"),
-        ("1.0 <= 0.0", "2 \n"),
-        ("1.0 == 2.0", "2 \n"),
-        ("1.0 != 1.0", "2 \n"),
+        ("true", "1"),
+        ("1 > 0", "1"),
+        ("1 < 2", "1"),
+        ("1 >= 1", "1"),
+        ("1 <= 1", "1"),
+        ("1 == 1", "1"),
+        ("1 != 2", "1"),
+        ("1.0 > 0.0", "1"),
+        ("1.0 < 2.0", "1"),
+        ("1.0 >= 1.0", "1"),
+        ("1.0 <= 1.0", "1"),
+        ("1.0 == 1.0", "1"),
+        ("1.0 != 2.0", "1"),
+        ("false", "2"),
+        ("1 > 2", "2"),
+        ("1 < 0", "2"),
+        ("1 >= 2", "2"),
+        ("1 <= 0", "2"),
+        ("1 == 2", "2"),
+        ("1 != 1", "2"),
+        ("1.0 > 2.0", "2"),
+        ("1.0 < 0.0", "2"),
+        ("1.0 >= 2.0", "2"),
+        ("1.0 <= 0.0", "2"),
+        ("1.0 == 2.0", "2"),
+        ("1.0 != 1.0", "2"),
     ],
 )
 def test_if_else_statement(capsys, condition, expected):
     template = funcion_template(
-        "main", [if_template(condition, "print(1);"), else_template("print(2);")]
+        "main",
+        [
+            conditional_template("if", condition, "print(1);"),
+            block_template("else", "print(2);"),
+        ],
     )
     error_handler = interpreter_init([template])
     out = capsys.readouterr()
-    assert out.out == expected
+    assert out.out == f"{expected}\n"
     assert len(error_handler.errors) == 0
 
 
@@ -206,42 +207,42 @@ def test_if_else_statement(capsys, condition, expected):
     "init_value, expression, expected",
     [
         # value change
-        ("1", "a = 2", "2 \n"),
-        ("1", "a = 2.0", "2.0 \n"),
-        ("1", "a = true", "True \n"),
-        ("1", "a = false", "False \n"),
-        ("1", 'a = "Hello"', "Hello \n"),
-        ("1", "a = Array()", "[] \n"),
-        ("1", "a = Array(1)", "[1] \n"),
-        ("1", "a = Array(1, 2)", "[1, 2] \n"),
+        ("1", "a = 2", "2"),
+        ("1", "a = 2.0", "2.0"),
+        ("1", "a = true", "True"),
+        ("1", "a = false", "False"),
+        ("1", 'a = "Hello"', "Hello"),
+        ("1", "a = Array()", "[]"),
+        ("1", "a = Array(1)", "[1]"),
+        ("1", "a = Array(1, 2)", "[1, 2]"),
         # value change with operations
-        ("1", "a += 2", "3 \n"),
-        ("1", "a += 2.0", "3.0 \n"),
-        ("1", "a -= 2", "-1 \n"),
-        ("1", "a -= 2.0", "-1.0 \n"),
-        ("1", "a *= 2", "2 \n"),
-        ("1", "a *= 2.0", "2.0 \n"),
-        ("1", "a /= 2", "0.5 \n"),
-        ("1", "a /= 2.0", "0.5 \n"),
-        ("1", "a %= 2", "1 \n"),
-        ("1", "a %= 2.0", "1.0 \n"),
+        ("1", "a += 2", "3"),
+        ("1", "a += 2.0", "3.0"),
+        ("1", "a -= 2", "-1"),
+        ("1", "a -= 2.0", "-1.0"),
+        ("1", "a *= 2", "2"),
+        ("1", "a *= 2.0", "2.0"),
+        ("1", "a /= 2", "0.5"),
+        ("1", "a /= 2.0", "0.5"),
+        ("1", "a %= 2", "1"),
+        ("1", "a %= 2.0", "1.0"),
         # array operations
-        ("Array()", "a.add(1)", "[1] \n"),
-        ("Array(1)", "a.add(2)", "[1, 2] \n"),
-        ("Array(3, 2, 1)", "a.remove(1)", "[3, 2] \n"),
-        ("Array(3, 2, 1)", "a.remove(2)", "[3, 1] \n"),
-        ("Array(3, 2, 1)", "a.removeAt(0)", "[2, 1] \n"),
-        ("Array(3, 2, 1)", "a.removeAt(1)", "[3, 1] \n"),
-        ("Array(3, 2, 1)", "a.clear()", "[] \n"),
-        ("Array(3, 2, 1)", "a = a.size()", "3 \n"),
-        ("Array(3, 2, 1)", "a = a.get(0)", "3 \n"),
-        ("Array(3, 2, 1)", "a = a.get(1)", "2 \n"),
-        ("Array(3, 2, 1)", "a.set(0, 1)", "[1, 2, 1] \n"),
-        ("Array(3, 2, 1)", "a.set(1, 3)", "[3, 3, 1] \n"),
-        ("Array(3, 2, 1)", "a = a.contains(1)", "True \n"),
-        ("Array(3, 2, 1)", "a = a.contains(4)", "False \n"),
-        ("Array(3, 2, 1)", "a = a.indexOf(3)", "0 \n"),
-        ("Array(3, 2, 1)", "a = a.indexOf(2)", "1 \n"),
+        ("Array()", "a.add(1)", "[1]"),
+        ("Array(1)", "a.add(2)", "[1, 2]"),
+        ("Array(3, 2, 1)", "a.remove(1)", "[3, 2]"),
+        ("Array(3, 2, 1)", "a.remove(2)", "[3, 1]"),
+        ("Array(3, 2, 1)", "a.removeAt(0)", "[2, 1]"),
+        ("Array(3, 2, 1)", "a.removeAt(1)", "[3, 1]"),
+        ("Array(3, 2, 1)", "a.clear()", "[]"),
+        ("Array(3, 2, 1)", "a = a.size()", "3"),
+        ("Array(3, 2, 1)", "a = a.get(0)", "3"),
+        ("Array(3, 2, 1)", "a = a.get(1)", "2"),
+        ("Array(3, 2, 1)", "a.set(0, 1)", "[1, 2, 1]"),
+        ("Array(3, 2, 1)", "a.set(1, 3)", "[3, 3, 1]"),
+        ("Array(3, 2, 1)", "a = a.contains(1)", "True"),
+        ("Array(3, 2, 1)", "a = a.contains(4)", "False"),
+        ("Array(3, 2, 1)", "a = a.indexOf(3)", "0"),
+        ("Array(3, 2, 1)", "a = a.indexOf(2)", "1"),
     ],
 )
 def test_variable_change_expressions(capsys, init_value, expression, expected):
@@ -255,37 +256,32 @@ def test_variable_change_expressions(capsys, init_value, expression, expected):
     )
     error_handler = interpreter_init([template])
     out = capsys.readouterr()
-    assert out.out == expected
+    assert out.out == f"{expected}\n"
     assert len(error_handler.errors) == 0
 
 
 @pytest.mark.parametrize(
-    "function_names, function_bodies, function_args,expected",
+    "expression",
     [
-        (
-            ["main", "test"],
-            [["test();"], ["print(1);"]],
-            ["", ""],
-            "1 \n",
-        )
+        "a += 2",
+        'a = "x" + 1',
+        "break",
+        "continue",
+        "a.remove(1)",
     ],
 )
-def test_function_calls(
-    capsys, function_names, function_bodies, function_args, expected
-):
-    templates = [
-        funcion_template(
-            function_name,
-            function_body,
-            function_arg,
-        )
-        for function_name, function_body, function_arg in zip(
-            function_names, function_bodies, function_args
-        )
-    ]
-    error_handler = interpreter_init(templates)
+def test_try_catch_without_params(expression, capsys):
+    print_func = 'print("error");'
+    template = funcion_template(
+        "main",
+        [
+            f"{block_template('try', f'{expression};')}",
+            f"{block_template('catch', print_func)}",
+        ],
+    )
+    error_handler = interpreter_init([template])
     out = capsys.readouterr()
-    assert out.out == expected
+    assert out.out == "error\n"
     assert len(error_handler.errors) == 0
 
 
@@ -293,67 +289,67 @@ def test_function_calls(
     "expression, expected",
     [
         (
-            'x = 1 + "a";',
+            'x = 1 + "a"',
             TypeError,
         ),
         (
-            'x = 1 - "a";',
+            'x = 1 - "a"',
             TypeError,
         ),
         (
-            'x = 1 * "a";',
+            'x = 1 * "a"',
             TypeError,
         ),
         (
-            'x = 1 / "a";',
+            'x = 1 / "a"',
             TypeError,
         ),
         (
-            'x = 1 % "a";',
+            'x = 1 % "a"',
             TypeError,
         ),
         (
-            'x = 1.0 + "a";',
+            'x = 1.0 + "a"',
             TypeError,
         ),
         (
-            "x = 1.0 + true;",
+            "x = 1.0 + true",
             TypeError,
         ),
         (
-            "x = 1.0 + false;",
+            "x = 1.0 + false",
             TypeError,
         ),
         (
-            "x = 1.0 + Array();",
+            "x = 1.0 + Array()",
             TypeError,
         ),
         (
-            "x = 1.0 + null;",
+            "x = 1.0 + null",
             TypeError,
         ),
         (
-            "x = 1 & 1;",
+            "x = 1 & 1",
             TypeError,
         ),
         (
-            'x = "a" & 1;',
+            'x = "a" & 1',
             TypeError,
         ),
         (
-            "x = 1 | 1;",
+            "x = 1 | 1",
             TypeError,
         ),
         (
-            'x = "a" | 1;',
+            'x = "a" | 1',
             TypeError,
         ),
         (
-            'x = !"a";',
+            'x = !"a"',
             TypeError,
         ),
         (
-            "x = !1;",
+            "x = !1",
             TypeError,
         ),
         (
@@ -365,69 +361,66 @@ def test_function_calls(
             TypeError,
         ),
         (
-            "x += 1;",
+            "x += 1",
             VariableError,
         ),
         (
-            "x -= 1;",
+            "x -= 1",
             VariableError,
         ),
         (
-            "x *= 1;",
+            "x *= 1",
             VariableError,
         ),
         (
-            "x /= 1;",
+            "x /= 1",
             VariableError,
         ),
         (
-            "x %= 1;",
+            "x %= 1",
             VariableError,
         ),
         (
-            "test();",
+            "test()",
             FunctionError,
         ),
         (
-            "Student().test;",
+            "Student().test",
             PropertyError,
         ),
         (
-            "Student().test();",
+            "Student().test()",
             PropertyError,
         ),
-        ('Student("a", "a", "a", "a");', PropertyError),
+        ('Student("a", "a", "a", "a")', ArgumentError),
     ],
 )
 def test_oneliner_errors(expression, expected):
     template = funcion_template(
         "main",
-        [expression],
+        [f"{expression};"],
     )
-    with pytest.raises(SystemExit) as pytest_wrapped_e:
-        error_handler = interpreter_init([template])
-        assert pytest_wrapped_e.type == SystemExit
-        assert pytest_wrapped_e.value.code == 1
-        assert len(error_handler.errors) == 1
-        assert isinstance(error_handler.errors[0], expected)
+    error_handler = interpreter_init([template])
+    assert len(error_handler.errors) == 1
+    assert isinstance(error_handler.errors[0], expected)
 
 
 @pytest.mark.parametrize(
     "function_names, function_bodies, function_args, expected",
     [
         ([], [], [], RuntimeError),
-        (["test"], ["x = 1;"], [], RuntimeError),
-        (["main", "test"], ["test(1);", ""], ["", ""], ArgumentError),
-        (["main", "test"], ["test();", ""], ["", "1"], ArgumentError),
+        (["test"], ["x = 1"], [], RuntimeError),
+        (["main", "test"], ["test(1)", ""], ["", ""], ArgumentError),
+        (["main", "test"], ["test()", ""], ["", "x"], ArgumentError),
         (
             ["main", "test"],
-            ["test();", 'throw ArgumentError("test")'],
+            ["test()", 'throw ArgumentError("test")'],
             ["", ""],
             ArgumentError,
         ),
         (
             ["main", "test"],
-            ["test();", "x += 1;"],
+            ["test()", "x += 1"],
             ["", ""],
             VariableError,
         ),
@@ -437,16 +430,14 @@ def test_function_call_errors(function_names, function_bodies, function_args, ex
     templates = [
         funcion_template(
             function_name,
-            [function_body],
+            [f"{function_body}{';' if function_body else ''}"],
             function_arg,
         )
         for function_name, function_body, function_arg in zip(
             function_names, function_bodies, function_args
         )
     ]
-    with pytest.raises(SystemExit) as pytest_wrapped_e:
-        error_handler = interpreter_init(templates)
-        assert pytest_wrapped_e.type == SystemExit
-        assert pytest_wrapped_e.value.code == 1
-        assert len(error_handler.errors) == 1
-        assert isinstance(error_handler.errors[0], expected)
+    print(functions_template(templates))
+    error_handler = interpreter_init(templates)
+    assert len(error_handler.errors) == 1
+    assert isinstance(error_handler.errors[0], expected)

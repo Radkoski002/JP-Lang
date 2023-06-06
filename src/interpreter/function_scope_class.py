@@ -1,46 +1,34 @@
 class FunctionScope:
     def __init__(self):
         self.references: dict[str, str] = {}
-        self.variables: dict[str, any] = {}
-        self.variables_stack: list[str] = []
-        self.variables_in_scope: list[int] = []
-        self.current_scope_variables: int = 0
-
-    def __expect_variable(self, name: str) -> any:
-        if not name in self.variables:
-            raise Exception(f"Variable {name} is not defined")
-
-    def __add_variable_to_scope(self, name: str, value: any = None):
-        self.current_scope_variables += 1
-        self.variables_stack.append(name)
-        self.variables[name] = value
-
-    def get_variable(self, name: str) -> any:
-        if not name in self.variables:
-            self.__add_variable_to_scope(name)
-        return self.variables[name]
+        self.variables_stack: list[dict[str, any]] = [{}]
 
     def expect_and_get_variable(self, name: str) -> any:
-        self.__expect_variable(name)
-        return self.get_variable(name)
+        for variables in self.variables_stack:
+            if name in variables:
+                return variables[name]
+        raise Exception(f"Variable {name} is not defined")
+
+    def get_or_init_variable(self, name: str) -> any:
+        for variables in self.variables_stack:
+            if name in variables:
+                return variables[name]
+        self.variables_stack[-1][name] = None
 
     def set_variable(self, name: str, value: any, reference: str = False):
-        if not name in self.variables:
-            self.__add_variable_to_scope(name)
         if reference:
             self.references[reference] = name
-        self.variables[name] = value
+        self.variables_stack[-1][name] = value
 
     def expect_and_set_variable(self, name: str, value: any = None) -> any:
-        self.__expect_variable(name)
-        self.variables[name] = value
+        if self.__get_variable(name) is None:
+            raise Exception(f"Variable {name} is not defined")
+        self.variables_stack[-1][name] = value
 
-    def enter_scope(self):
-        self.variables_in_scope.append(self.current_scope_variables)
-        self.current_scope_variables = 0
+    def enter_scope(self, vars: dict[str, any] = {}):
+        if vars is None:
+            vars = {}
+        self.variables_stack.append(vars)
 
     def exit_scope(self):
-        for _ in range(self.current_scope_variables):
-            variable = self.variables_stack.pop()
-            del self.variables[variable]
-        self.current_scope_variables = self.variables_in_scope.pop()
+        del self.variables_stack[-1]

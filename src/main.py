@@ -19,10 +19,11 @@ def main():
             lexer = Lexer(stream_provider, error_handler)
             parser = Parser(lexer)
             program = parser.parse()
-            error_handler.raise_errors()
+            if error_handler.has_errors():
+                error_handler.raise_errors()
+                exit(1)
             interpreter = Interpreter(error_handler)
             interpreter.visit(program)
-            error_handler.raise_errors()
 
 
 if __name__ == "__main__":

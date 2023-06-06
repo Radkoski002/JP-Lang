@@ -48,3 +48,8 @@ class PropertyError(Error):
 class FunctionError(Error):
     def __init__(self, position: Position, message: str, *args):
         super().__init__(position, message, args)
+
+
+class StackOverflowError(Error):
+    def __init__(self, position: Position, message: str, *args):
+        super().__init__(position, message, args)

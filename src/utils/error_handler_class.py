@@ -13,7 +13,5 @@ class ErrorHandler:
         return len(self.errors) > 0
 
     def raise_errors(self):
-        if self.has_errors():
-            for error in self.errors:
-                print(error)
-            exit(1)
+        for error in self.errors:
+            print(error)

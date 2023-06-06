@@ -1,6 +1,8 @@
-test() {
-}
-
 main() {
-    throw Student();
+        test(1);
+}
+test(x) {
+        x += 1;
+        print(x);
+        test(x);
 }
