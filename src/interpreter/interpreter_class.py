@@ -24,12 +24,12 @@ class Interpreter(IVisitor):
         self.current_environment: FunctionScope | None = None
         self.call_stack: list[FunctionScope] = []
 
-        self.is_in_loop: bool = False
-        self.is_reference: bool = False
+        self.loop_scopes: int = 0
         self.break_called: bool = False
         self.continue_called: bool = False
         self.return_called: bool = False
 
+        self.is_reference: bool = False
         self.error_thrown: None | Error = None
         self.error_position: Position | None = None
         self.function_call_position: Position | None = None
@@ -75,23 +75,39 @@ class Interpreter(IVisitor):
             return True
         return False
 
+    def __check_division_by_zero(
+        self, left: any, right: any, operator: str, position: Position
+    ):
+        if right == 0:
+            self.error_thrown = ValueError(
+                position,
+                f"Cannot apply operator {operator} if right side is 0.",
+            )
+            return True
+        return False
+
     def __evaluate_infix_expression(
-        self, node: InfixExpression, function: function, operator: str, check_func=None
+        self, node: InfixExpression, function: function, operator: str, check_funcs=[]
     ):
         left, right = self.__get_infix_sides(node)
-        if check_func and check_func(left, right, operator, node.position):
-            return
+        for func in check_funcs:
+            if func(left, right, operator, node.position):
+                return
         self.result = function(left, right)
 
     def __evaluate_arithmetic_assignment(
-        self, node: any, function: function, operator: str
+        self, node: any, function: function, operator: str, check_div=False
     ):
         node.expression.accept(self)
         left = self.__expect_value(node)
         if self.error_thrown:
             return
         right = self.__consume_result()
-        self.__check_arithmetic_types(left, right, operator, node.position)
+        if self.__check_arithmetic_types(left, right, operator, node.position) or (
+            check_div
+            and self.__check_division_by_zero(left, right, operator, node.position)
+        ):
+            return
         self.current_environment.set_variable(node.variable.name, function(left, right))
 
     def __evaluate_arguments(self, arguments: list[Argument]):
@@ -132,26 +148,26 @@ class Interpreter(IVisitor):
             )
 
     def _visit_built_in_function(self, node: BuiltInFunction):
-        arguments = self.__consume_result()
+        arguments = (
+            [self.error_position, *self.__consume_result()]
+            if isinstance(node, ErrorConstructor)
+            else self.__consume_result()
+        )
         if node.argc != None and node.argc < len(arguments):
             self.error_thrown = ArgumentError(
                 self.function_call_position,
                 f"Function {node.name} takes max of {node.argc} arguments, {len(arguments)} given",
             )
             return
-        evaluated_arguments = [self.error_position] if self.error_position else []
-        for argument in arguments:
-            argument.accept(self)
-            if self.error_thrown:
-                return
-            arg = self.__consume_result()
-            if isinstance(arg, tuple):
-                evaluated_arguments.append(arg[0])
-            else:
-                evaluated_arguments.append(arg)
-        self.result = node.execute(evaluated_arguments)
+        self.result = node.execute(arguments)
 
     def _visit_function_definition(self, node: FunctionDef):
+        if node.name == "main" and len(node.parameters) > 0:
+            self.error_thrown = ArgumentError(
+                node.position,
+                "Main function cannot take any arguments",
+            )
+            return
         new_env = FunctionScope()
         args = self.__consume_result()
         if args != None:
@@ -161,8 +177,7 @@ class Interpreter(IVisitor):
                     f"Function {node.name} takes {len(node.parameters)} arguments, {len(args)} given",
                 )
                 return
-            evaluated_args = self.__evaluate_arguments(args)
-            for param, value in zip_longest(node.parameters, evaluated_args):
+            for param, value in zip_longest(node.parameters, args):
                 if not param.is_optional and value is None:
                     self.error_thrown = ArgumentError(
                         node.position,
@@ -194,7 +209,7 @@ class Interpreter(IVisitor):
             statement.accept(self)
             if (
                 (self.break_called or self.continue_called)
-                and self.is_in_loop
+                and self.loop_scopes > 0
                 or self.return_called
                 or self.error_thrown
             ):
@@ -203,23 +218,39 @@ class Interpreter(IVisitor):
 
     def _visit_add_expression(self, node: AddExpression):
         func = lambda a, b: a + b
-        self.__evaluate_infix_expression(node, func, "+", self.__check_arithmetic_types)
+        self.__evaluate_infix_expression(
+            node, func, "+", [self.__check_arithmetic_types]
+        )
 
     def _visit_subtract_expression(self, node: SubtractExpression):
         func = lambda a, b: a - b
-        self.__evaluate_infix_expression(node, func, "-", self.__check_arithmetic_types)
+        self.__evaluate_infix_expression(
+            node, func, "-", [self.__check_arithmetic_types]
+        )
 
     def _visit_multiply_expression(self, node: MultiplyExpression):
         func = lambda a, b: a * b
-        self.__evaluate_infix_expression(node, func, "*", self.__check_arithmetic_types)
+        self.__evaluate_infix_expression(
+            node, func, "*", [self.__check_arithmetic_types]
+        )
 
     def _visit_divide_expression(self, node: DivideExpression):
         func = lambda a, b: a / b
-        self.__evaluate_infix_expression(node, func, "/", self.__check_arithmetic_types)
+        self.__evaluate_infix_expression(
+            node,
+            func,
+            "/",
+            [self.__check_arithmetic_types, self.__check_division_by_zero],
+        )
 
     def _visit_modulo_expression(self, node: ModuloExpression):
         func = lambda a, b: a % b
-        self.__evaluate_infix_expression(node, func, "%", self.__check_arithmetic_types)
+        self.__evaluate_infix_expression(
+            node,
+            func,
+            "%",
+            [self.__check_arithmetic_types, self.__check_division_by_zero],
+        )
 
     def _visit_equal_expression(self, node: EqualExpression):
         func = lambda a, b: a == b
@@ -232,30 +263,34 @@ class Interpreter(IVisitor):
     def _visit_greater_equal_expression(self, node: GreaterEqualExpression):
         func = lambda a, b: a >= b
         self.__evaluate_infix_expression(
-            node, func, ">=", self.__check_arithmetic_types
+            node, func, ">=", [self.__check_arithmetic_types]
         )
 
     def _visit_greater_than_expression(self, node: GreaterThanExpression):
         func = lambda a, b: a > b
-        self.__evaluate_infix_expression(node, func, ">", self.__check_arithmetic_types)
+        self.__evaluate_infix_expression(
+            node, func, ">", [self.__check_arithmetic_types]
+        )
 
     def _visit_less_equal_expression(self, node: LessEqualExpression):
         func = lambda a, b: a <= b
         self.__evaluate_infix_expression(
-            node, func, "<=", self.__check_arithmetic_types
+            node, func, "<=", [self.__check_arithmetic_types]
         )
 
     def _visit_less_than_expression(self, node: LessThanExpression):
         func = lambda a, b: a < b
-        self.__evaluate_infix_expression(node, func, "<", self.__check_arithmetic_types)
+        self.__evaluate_infix_expression(
+            node, func, "<", [self.__check_arithmetic_types]
+        )
 
     def _visit_and_expression(self, node: AndExpression):
         func = lambda a, b: a and b
-        self.__evaluate_infix_expression(node, func, "&", self.__check_boolean_types)
+        self.__evaluate_infix_expression(node, func, "&", [self.__check_boolean_types])
 
     def _visit_or_expression(self, node: OrExpression):
         func = lambda a, b: a or b
-        self.__evaluate_infix_expression(node, func, "|", self.__check_boolean_types)
+        self.__evaluate_infix_expression(node, func, "|", [self.__check_boolean_types])
 
     def _visit_bitwise_negation_expression(self, node: BitwiseNegationExpression):
         node.expression.accept(self)
@@ -321,7 +356,13 @@ class Interpreter(IVisitor):
                     f"Class {type(built_in_class).__name__} does not have a method {node.name}",
                 )
         else:
-            self.result = node.arguments
+            if node.name == "main":
+                self.error_thrown = FunctionError(
+                    node.position,
+                    "main function cannot be called",
+                )
+                return
+            self.result = self.__evaluate_arguments(node.arguments)
             self.function_call_position = node.position
             self.call_stack.append(self.current_environment)
             if len(self.call_stack) > self.max_call_stack_size:
@@ -342,7 +383,7 @@ class Interpreter(IVisitor):
             old_environment = self.call_stack.pop()
             for key, value in self.current_environment.references.items():
                 old_environment.set_variable(
-                    key, self.current_environment.variables.get(value)
+                    key, self.current_environment.expect_and_get_variable(value)
                 )
             self.current_environment = old_environment
 
@@ -353,7 +394,7 @@ class Interpreter(IVisitor):
         self, node: OptionalPropertyAccessExpression
     ):
         self.__evaluate_property_access(node)
-        if self.error_thrown:
+        if isinstance(self.error_thrown, PropertyError):
             self.error_thrown = None
             self.result = None
 
@@ -375,7 +416,7 @@ class Interpreter(IVisitor):
                 node.else_statement.accept(self)
 
     def _visit_while_statement(self, node: WhileStatement):
-        self.is_in_loop = True
+        self.loop_scopes += 1
         while True:
             node.condition.accept(self)
             if not self.__consume_result():
@@ -387,13 +428,13 @@ class Interpreter(IVisitor):
             if self.continue_called:
                 self.continue_called = False
             if self.error_thrown:
-                self.is_in_loop = False
+                self.loop_scopes -= 1
                 return
 
-        self.is_in_loop = False
+        self.loop_scopes -= 1
 
     def _visit_for_statement(self, node: ForStatement):
-        self.is_in_loop = True
+        self.loop_scopes += 1
         node.iterable.accept(self)
         iterable = self.__consume_result()
         if not isinstance(iterable, Array):
@@ -410,12 +451,13 @@ class Interpreter(IVisitor):
             if self.continue_called:
                 self.continue_called = False
             if self.error_thrown:
-                self.is_in_loop = False
+                self.loop_scopes -= 1
                 return
-        self.is_in_loop = False
+        self.loop_scopes -= 1
 
     def _visit_return_statement(self, node: ReturnStatement):
-        node.expression.accept(self)
+        if node.expression is not None:
+            node.expression.accept(self)
         self.return_called = True
 
     def _visit_assignment_statement(self, node: AssignmentStatement):
@@ -440,11 +482,11 @@ class Interpreter(IVisitor):
 
     def _visit_assignment_divide_statement(self, node: AssignmentDivideStatement):
         func = lambda x, y: x / y
-        self.__evaluate_arithmetic_assignment(node, func, "/=")
+        self.__evaluate_arithmetic_assignment(node, func, "/=", True)
 
     def _visit_assignment_modulo_statement(self, node: AssignmentModuloStatement):
         func = lambda x, y: x % y
-        self.__evaluate_arithmetic_assignment(node, func, "%=")
+        self.__evaluate_arithmetic_assignment(node, func, "%=", True)
 
     def _visit_try_catch_statement(self, node: TryCatchStatement):
         node.try_statement.accept(self)
@@ -452,9 +494,7 @@ class Interpreter(IVisitor):
             for catch_block in node.catch_statements:
                 if not catch_block.error_types:
                     self.error_thrown = None
-                    self.current_environment.enter_scope()
                     catch_block.catch_statement.accept(self)
-                    self.current_environment.exit_scope()
                     return
                 for error_type in catch_block.error_types:
                     if error_type.name not in self.program.functions:
@@ -466,13 +506,9 @@ class Interpreter(IVisitor):
                     if isinstance(
                         self.error_thrown.__class__, eval(error_type.name)
                     ) or issubclass(self.error_thrown.__class__, eval(error_type.name)):
+                        self.result = {catch_block.error_var.name: self.error_thrown}
                         self.error_thrown = None
-                        self.current_environment.enter_scope()
-                        self.current_environment.set_variable(
-                            catch_block.error_var.name, self.error_thrown
-                        )
                         catch_block.catch_statement.accept(self)
-                        self.current_environment.exit_scope()
                         return
 
     def _visit_throw_statement(self, node: ThrowStatement):
@@ -486,7 +522,7 @@ class Interpreter(IVisitor):
         self.error_position = None
 
     def _visit_break_statement(self, node: BreakStatement):
-        if not self.is_in_loop:
+        if self.loop_scopes == 0:
             self.error_thrown = ExpressionError(
                 node.position,
                 "break statement can only be used in loop",
@@ -494,7 +530,7 @@ class Interpreter(IVisitor):
         self.break_called = True
 
     def _visit_continue_statement(self, node: ContinueStatement):
-        if not self.is_in_loop:
+        if self.loop_scopes == 0:
             self.error_thrown = ExpressionError(
                 node.position,
                 "continue statement can only be used in loop",

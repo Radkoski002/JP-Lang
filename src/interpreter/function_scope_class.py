@@ -18,11 +18,19 @@ class FunctionScope:
     def set_variable(self, name: str, value: any, reference: str = False):
         if reference:
             self.references[reference] = name
+        for variables in self.variables_stack:
+            if name in variables:
+                variables[name] = value
+                return
         self.variables_stack[-1][name] = value
 
     def expect_and_set_variable(self, name: str, value: any = None) -> any:
         if self.__get_variable(name) is None:
             raise Exception(f"Variable {name} is not defined")
+        for variables in self.variables_stack:
+            if name in variables:
+                variables[name] = value
+                return
         self.variables_stack[-1][name] = value
 
     def enter_scope(self, vars: dict[str, any] = {}):
@@ -31,4 +39,8 @@ class FunctionScope:
         self.variables_stack.append(vars)
 
     def exit_scope(self):
-        del self.variables_stack[-1]
+        if len(self.variables_stack) != 0:
+            del self.variables_stack[-1]
+        self.break_called = False
+        self.continue_called = False
+        self.return_called = False

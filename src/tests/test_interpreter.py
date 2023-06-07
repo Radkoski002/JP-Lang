@@ -126,7 +126,7 @@ def test_init():
 def test_base_expressions(input, expected, capsys):
     error_handler = interpreter_init([funcion_template("main", [f"print({input});"])])
     out = capsys.readouterr()
-    assert out.out == f"{expected}\n"
+    assert out.out == f"{expected}"
     assert len(error_handler.errors) == 0
 
 
@@ -154,7 +154,7 @@ def test_if_statement(capsys, condition):
     )
     error_handler = interpreter_init([template])
     out = capsys.readouterr()
-    assert out.out == "1\n"
+    assert out.out == "1"
     assert len(error_handler.errors) == 0
 
 
@@ -199,7 +199,7 @@ def test_if_else_statement(capsys, condition, expected):
     )
     error_handler = interpreter_init([template])
     out = capsys.readouterr()
-    assert out.out == f"{expected}\n"
+    assert out.out == f"{expected}"
     assert len(error_handler.errors) == 0
 
 
@@ -256,7 +256,7 @@ def test_variable_change_expressions(capsys, init_value, expression, expected):
     )
     error_handler = interpreter_init([template])
     out = capsys.readouterr()
-    assert out.out == f"{expected}\n"
+    assert out.out == f"{expected}"
     assert len(error_handler.errors) == 0
 
 
@@ -268,6 +268,7 @@ def test_variable_change_expressions(capsys, init_value, expression, expected):
         "break",
         "continue",
         "a.remove(1)",
+        'throw Error("error")',
     ],
 )
 def test_try_catch_without_params(expression, capsys):
@@ -281,7 +282,79 @@ def test_try_catch_without_params(expression, capsys):
     )
     error_handler = interpreter_init([template])
     out = capsys.readouterr()
-    assert out.out == "error\n"
+    assert out.out == "error"
+    assert len(error_handler.errors) == 0
+
+
+@pytest.mark.parametrize(
+    "function_names, function_params, function_bodies, expected",
+    [
+        (
+            ["test", "main"],
+            ["x", ""],
+            [
+                [
+                    conditional_template("if", "x >= 10", "return;"),
+                    "print(x);",
+                    "test(x + 1);",
+                ],
+                ["test(1);"],
+            ],
+            "123456789",
+        ),
+        (
+            ["test", "main"],
+            ["x", ""],
+            [
+                ["x += 1;"],
+                ["x = 1;", "test(@x);", "print(x);"],
+            ],
+            "2",
+        ),
+        (
+            ["test", "main"],
+            ["", ""],
+            [
+                ['throw Error("Error");'],
+                [
+                    block_template("try", "test();"),
+                    block_template("catch", 'print("caught");'),
+                ],
+            ],
+            "caught",
+        ),
+        (
+            ["test", "main"],
+            ["", ""],
+            [
+                ['throw Error("Error");'],
+                [
+                    block_template("try", "test();"),
+                    conditional_template(
+                        "catch", "Error e", 'print("caught ", e.message);'
+                    ),
+                ],
+            ],
+            "caught Error",
+        ),
+    ],
+)
+def test_function_call(
+    function_names, function_params, function_bodies, expected, capsys
+):
+    templates = [
+        funcion_template(
+            function_name,
+            [f"{statement}" for statement in function_body],
+            function_param,
+        )
+        for function_name, function_body, function_param in zip(
+            function_names, function_bodies, function_params
+        )
+    ]
+    error_handler = interpreter_init(templates)
+    out = capsys.readouterr()
+    assert out.out == expected
     assert len(error_handler.errors) == 0
 
 
@@ -393,6 +466,9 @@ def test_try_catch_without_params(expression, capsys):
             PropertyError,
         ),
         ('Student("a", "a", "a", "a")', ArgumentError),
+        ("main()", FunctionError),
+        ("x = 1 / 0", ValueError),
+        ("x = 1 % 0", ValueError),
     ],
 )
 def test_oneliner_errors(expression, expected):
@@ -410,6 +486,9 @@ def test_oneliner_errors(expression, expected):
     [
         ([], [], [], RuntimeError),
         (["test"], ["x = 1"], [], RuntimeError),
+        (["main"], [""], ["x"], ArgumentError),
+        (["main", "test"], ["test(1)", "x /= 0"], ["", "x"], ValueError),
+        (["main", "test"], ["test(1)", "x %= 0"], ["", "x"], ValueError),
         (["main", "test"], ["test(1)", ""], ["", ""], ArgumentError),
         (["main", "test"], ["test()", ""], ["", "x"], ArgumentError),
         (
@@ -424,6 +503,12 @@ def test_oneliner_errors(expression, expected):
             ["", ""],
             VariableError,
         ),
+        (
+            ["main", "test"],
+            ["test()", "test()"],
+            ["", ""],
+            StackOverflowError,
+        ),
     ],
 )
 def test_function_call_errors(function_names, function_bodies, function_args, expected):
@@ -437,7 +522,6 @@ def test_function_call_errors(function_names, function_bodies, function_args, ex
             function_names, function_bodies, function_args
         )
     ]
-    print(functions_template(templates))
     error_handler = interpreter_init(templates)
     assert len(error_handler.errors) == 1
     assert isinstance(error_handler.errors[0], expected)

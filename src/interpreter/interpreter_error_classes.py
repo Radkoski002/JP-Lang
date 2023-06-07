@@ -53,3 +53,8 @@ class FunctionError(Error):
 class StackOverflowError(Error):
     def __init__(self, position: Position, message: str, *args):
         super().__init__(position, message, args)
+
+
+class ValueError(Error):
+    def __init__(self, position: Position, message: str, *args):
+        super().__init__(position, message, args)

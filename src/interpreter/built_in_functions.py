@@ -30,7 +30,7 @@ class PrintFunction(BuiltInFunction):
         self.name = "print"
 
     def execute(self, args: list[any]):
-        print(*args)
+        print(*args, end="", sep="")
 
 
 class ArrayConstructor(BuiltInFunction):

@@ -1,8 +1,5 @@
 main() {
-        test(1);
-}
-test(x) {
-        x += 1;
+        x = Array(1);
+        x?.add(1 / 0);
         print(x);
-        test(x);
 }
