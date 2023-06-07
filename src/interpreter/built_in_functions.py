@@ -33,6 +33,33 @@ class PrintFunction(BuiltInFunction):
         print(*args, end="", sep="")
 
 
+class InputStringFunction(BuiltInFunction):
+    def __init__(self):
+        self.name = "inputString"
+        self.argc = 0
+
+    def execute(self, args):
+        return input()
+
+
+class InputIntFunction(BuiltInFunction):
+    def __init__(self):
+        self.name = "inputInt"
+        self.argc = 0
+
+    def execute(self, args):
+        return int(input())
+
+
+class InputFloatFunction(BuiltInFunction):
+    def __init__(self):
+        self.name = "inputFloat"
+        self.argc = 0
+
+    def execute(self, args):
+        return float(input())
+
+
 class ArrayConstructor(BuiltInFunction):
     def __init__(self):
         self.name = "Array"
@@ -62,6 +89,9 @@ class ErrorConstructor(BuiltInFunction):
 def get_built_in_functions() -> dict[str, BuiltInFunction]:
     return {
         "print": PrintFunction(),
+        "inputString": InputStringFunction(),
+        "inputInt": InputIntFunction(),
+        "inputFloat": InputFloatFunction(),
         "Array": ArrayConstructor(),
         "Student": StudentConstructor(),
         "Error": ErrorConstructor(),

@@ -129,6 +129,20 @@ Wyjątek rzucony w scopie występującym po słowie kluczowym catch musi zostać
 
 `# Komentarz jednoliniowy`
 
+## Własne funkcje i klasy
+
+Aby dodać nową funkcję wbudowaną należy zdefiniować nową klasę dziedziczącą po klasie `BuiltInFunction`.
+W tej klasie należy zaimplementować metodę `__init__` w której należy zainicjować nazwę funkcji (`self.name`) oraz opcjonalnie liczbę argumentów (`self.argc` - nie ustawiamy jeżeli liczba argumentów jest nieskończona).
+Należy również zaimplementować metodę `execute` która będzie wywoływała funckję.
+Metoda execute MUSI przyjmować tablicę argumentów, nawet jeżeli funkcja jest bezargumentowa.
+Po zdefiniowaniu klasy należy dodać ją do funkcji `get_built_in_functions` zwracającej słownik funkcji z kluczem w postaci nazwy funkcji i wartościa w postaci instancji klasy
+Funkcja ta znajduje się w pliku `builtInFunctions.py`.
+
+Aby zdefiniować własną klasę działamy dość podobnie.
+Po zdefiniowaniu własnej pythonowej klasy definiujemy kolejną funkcję wbudowaną będącą konstruktorem danej klasy.
+W metodzie `__init__` podajemy nazwę klasy (`self.name`) oraz listę argumentów potrzebnych przy inicjowaniu klasy (`self.args`).
+Metoda `execute` konstruuje obiekt klasy na podstawie podanych argumentów i zwraca go.
+
 ## Analiza leksykalna
 
 Analizator leksykalny (Lexer) jest częścią kompilatora odpowiedzialną za podział kodu źródłowego na tokeny. Lexer będzie działał leniwie, czyli będzie odczytywał kod znak po znaku i tworzył tokeny dopiero gdy będzie miał wystarczającą ilość znaków do stworzenia tokenu. Należało wprowadzić ograiczenia na długość tokenów, aby nie było możliwe stworzenie nieskończenie długiego tokenu.

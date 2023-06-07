@@ -353,7 +353,7 @@ class ReturnStatement(IStatement):
 class AssignmentStatement(IStatement):
     def __init__(
         self,
-        variable: IdentifierExpression,
+        variable: PropertyAccessExpression | OptionalPropertyAccessExpression,
         expression: IExpression,
         position: Position = None,
     ) -> None:

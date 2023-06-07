@@ -290,6 +290,12 @@ def test_try_catch_without_params(expression, capsys):
     "function_names, function_params, function_bodies, expected",
     [
         (
+            ["main"],
+            [""],
+            [['x = Student("John", "Doe", 20);', 'x.name = "Maciej";, print(x.name);']],
+            "Maciej",
+        ),
+        (
             ["test", "main"],
             ["x", ""],
             [

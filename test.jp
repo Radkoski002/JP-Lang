@@ -1,5 +1,6 @@
 main() {
-        x = Array(1);
-        x?.add(1 / 0);
-        print(x);
+        x = Student("John", "Doe", 3.5);
+        y = Student(x, "Test", 3.5);
+        print(y.name.surname);
 }
+

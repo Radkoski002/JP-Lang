@@ -15,7 +15,7 @@ class FunctionScope:
                 return variables[name]
         self.variables_stack[-1][name] = None
 
-    def set_variable(self, name: str, value: any, reference: str = False):
+    def set_or_init_variable(self, name: str, value: any, reference: str = False):
         if reference:
             self.references[reference] = name
         for variables in self.variables_stack:

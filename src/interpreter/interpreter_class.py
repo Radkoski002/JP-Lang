@@ -108,7 +108,9 @@ class Interpreter(IVisitor):
             and self.__check_division_by_zero(left, right, operator, node.position)
         ):
             return
-        self.current_environment.set_variable(node.variable.name, function(left, right))
+        self.current_environment.set_or_init_variable(
+            node.variable.name, function(left, right)
+        )
 
     def __evaluate_arguments(self, arguments: list[Argument]):
         evaluated = []
@@ -186,12 +188,12 @@ class Interpreter(IVisitor):
                     return
                 elif param.is_optional and value is None:
                     param.value.accept(self)
-                    new_env.set_variable(param.name, self.__consume_result())
+                    new_env.set_or_init_variable(param.name, self.__consume_result())
                 else:
                     if isinstance(value, tuple):
-                        new_env.set_variable(param.name, *value)
+                        new_env.set_or_init_variable(param.name, *value)
                     else:
-                        new_env.set_variable(param.name, value)
+                        new_env.set_or_init_variable(param.name, value)
 
         self.current_environment = new_env
         node.block.accept(self)
@@ -205,8 +207,8 @@ class Interpreter(IVisitor):
     def _visit_block_statement(self, node: BlockStatement):
         self.current_environment.enter_scope(self.__consume_result())
         for statement in node.statements:
-            self.result = None
             statement.accept(self)
+            self.result = None
             if (
                 (self.break_called or self.continue_called)
                 and self.loop_scopes > 0
@@ -364,13 +366,13 @@ class Interpreter(IVisitor):
                 return
             self.result = self.__evaluate_arguments(node.arguments)
             self.function_call_position = node.position
-            self.call_stack.append(self.current_environment)
-            if len(self.call_stack) > self.max_call_stack_size:
+            if len(self.call_stack) == self.max_call_stack_size:
                 self.error_thrown = StackOverflowError(
                     node.position,
                     f"Maximum call stack size of {self.max_call_stack_size} exceeded",
                 )
                 return
+            self.call_stack.append(self.current_environment)
             if function := self.program.functions.get(node.name):
                 function.accept(self)
             else:
@@ -382,7 +384,7 @@ class Interpreter(IVisitor):
                 return
             old_environment = self.call_stack.pop()
             for key, value in self.current_environment.references.items():
-                old_environment.set_variable(
+                old_environment.set_or_init_variable(
                     key, self.current_environment.expect_and_get_variable(value)
                 )
             self.current_environment = old_environment
@@ -415,6 +417,7 @@ class Interpreter(IVisitor):
             if node.else_statement is not None:
                 node.else_statement.accept(self)
 
+    # TODO: Move loop scopes to calling scope
     def _visit_while_statement(self, node: WhileStatement):
         self.loop_scopes += 1
         while True:
@@ -464,7 +467,7 @@ class Interpreter(IVisitor):
         node.expression.accept(self)
         if self.error_thrown:
             return
-        self.current_environment.set_variable(
+        self.current_environment.set_or_init_variable(
             node.variable.name, self.__consume_result()
         )
 
