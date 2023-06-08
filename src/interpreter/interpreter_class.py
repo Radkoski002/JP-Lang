@@ -1,4 +1,5 @@
 from __future__ import annotations
+from copy import deepcopy
 from interpreter.visitor_interface import IVisitor
 from typing import TYPE_CHECKING
 from interpreter.built_in_classes import Array
@@ -6,12 +7,13 @@ from itertools import zip_longest
 from interpreter.built_in_functions import *
 from interpreter.interpreter_error_classes import *
 from interpreter.function_scope_class import FunctionScope
+from interpreter.base_datatypes import LiteralConstructor
 from utils.error_handler_class import ErrorHandler
+from parser.statement_classes import IdentifierExpression
 
 if TYPE_CHECKING:
     from program.program_class import Program
     from parser.statement_classes import *
-    from interpreter.built_in_functions import BuiltInFunction
 
 
 class Interpreter(IVisitor):
@@ -20,6 +22,7 @@ class Interpreter(IVisitor):
         self.result: any = None
         self.error_handler: ErrorHandler = error_handler
         self.program: Program | None = None
+        self.literal_constucor = LiteralConstructor()
 
         self.current_environment: FunctionScope | None = None
         self.call_stack: list[FunctionScope] = []
@@ -29,15 +32,10 @@ class Interpreter(IVisitor):
         self.continue_called: bool = False
         self.return_called: bool = False
 
-        self.is_reference: bool = False
+        self.is_passed_by_value: bool = False
         self.error_thrown: None | Error = None
         self.error_position: Position | None = None
         self.function_call_position: Position | None = None
-
-        self.property_access_depth: int = 0
-        self.set_property_name: bool = False
-        self.property_name: str | None = None
-        self.return_reference: bool = False
 
         self.max_call_stack_size = 100
 
@@ -48,9 +46,9 @@ class Interpreter(IVisitor):
 
     def __get_infix_sides(self, expression: InfixExpression) -> tuple[any, any]:
         expression.left.accept(self)
-        left = self.__consume_result()
+        left = self.__consume_result()._value
         expression.right.accept(self)
-        right = self.__consume_result()
+        right = self.__consume_result()._value
         return left, right
 
     def __check_arithmetic_types(
@@ -98,41 +96,31 @@ class Interpreter(IVisitor):
         for func in check_funcs:
             if func(left, right, operator, node.position):
                 return
-        self.result = function(left, right)
+        self.result = self.literal_constucor.get(function(left, right))
 
     def __evaluate_arithmetic_assignment(
         self, node: any, function: function, operator: str, check_div=False
     ):
-        try:
-            self.return_reference = True
-            node.variable.accept(self)
-            self.return_reference = False
-            if self.property_name:
-                parent = self.__consume_result()
-                left = getattr(parent, self.property_name)
-            else:
-                left = self.current_environment.get_or_init_variable(node.variable.name)
-        except:
+        node.variable.accept(self)
+        left = self.__consume_result()
+        if left == None:
             self.error_thrown = VariableError(
-                node.position,
-                f"Variable {node.variable.name} is not defined",
+                node.position, f"Variable {node.variable.name} is not defined"
             )
             return
-        self.return_reference = False
         node.expression.accept(self)
         right = self.__consume_result()
-        if self.__check_arithmetic_types(left, right, operator, node.position) or (
+        left_val, right_val = left._value, right._value
+        if self.__check_arithmetic_types(
+            left_val, right_val, operator, node.position
+        ) or (
             check_div
-            and self.__check_division_by_zero(left, right, operator, node.position)
+            and self.__check_division_by_zero(
+                left_val, right_val, operator, node.position
+            )
         ):
             return
-        if self.property_name:
-            setattr(parent, self.property_name, function(left, right))
-            self.property_name = None
-        else:
-            self.current_environment.set_or_init_variable(
-                node.variable.name, function(left, right)
-            )
+        left._value = function(left_val, right_val)
 
     def __evaluate_arguments(self, arguments: list[Argument]):
         evaluated = []
@@ -144,12 +132,10 @@ class Interpreter(IVisitor):
     def __evaluate_property_access(
         self, node: PropertyAccessExpression | OptionalPropertyAccessExpression
     ):
-        self.property_access_depth += 1
         node.left.accept(self)
-        if self.return_reference and self.property_access_depth == 1:
-            self.set_property_name = True
+        if self.error_thrown:
+            return
         node.right.accept(self)
-        self.property_access_depth -= 1
 
     def _visit_program(self, node: Program):
         self.program = node
@@ -204,19 +190,16 @@ class Interpreter(IVisitor):
                     param.value.accept(self)
                     new_env.set_or_init_variable(param.name, self.__consume_result())
                 else:
-                    if isinstance(value, tuple):
-                        new_env.set_or_init_variable(param.name, *value)
-                    else:
-                        new_env.set_or_init_variable(param.name, value)
+                    new_env.set_or_init_variable(param.name, value)
 
         self.current_environment = new_env
         node.block.accept(self)
         self.return_called = False
 
     def _visit_argument(self, node: Argument):
-        self.is_reference = node.is_reference
+        self.is_passed_by_value = not node.is_reference
         node.value.accept(self)
-        self.is_reference = False
+        self.is_passed_by_value = False
 
     def _visit_block_statement(self, node: BlockStatement):
         self.current_environment.enter_scope(self.__consume_result())
@@ -311,16 +294,16 @@ class Interpreter(IVisitor):
     def _visit_bitwise_negation_expression(self, node: BitwiseNegationExpression):
         node.expression.accept(self)
         value = self.__consume_result()
-        if self.__check_boolean_types(value, True, "!", node.position, True):
+        if self.__check_boolean_types(value._value, True, "!", node.position, True):
             return
-        self.result = not value
+        self.result = self.literal_constucor.get(not value._value)
 
     def _visit_numeric_negation_expression(self, node: NumericNegationExpression):
         node.expression.accept(self)
         value = self.__consume_result()
-        if self.__check_arithmetic_types(value, 0, "-", node.position, True):
+        if self.__check_arithmetic_types(value._value, 0, "-", node.position, True):
             return
-        self.result = -value
+        self.result = self.literal_constucor.get(-value._value)
 
     def _visit_type_check_expression(self, node: TypeCheckExpression):
         node.expression.accept(self)
@@ -328,27 +311,23 @@ class Interpreter(IVisitor):
         self.result = type(value).__name__ == node.type_name
 
     def _visit_string_literal(self, node: StringLiteral):
-        self.result = node.value
+        self.result = self.literal_constucor.get(node.value)
 
     def _visit_integer_literal(self, node: IntegerLiteral):
-        self.result = node.value
+        self.result = self.literal_constucor.get(node.value)
 
     def _visit_float_literal(self, node: FloatLiteral):
-        self.result = node.value
+        self.result = self.literal_constucor.get(node.value)
 
     def _visit_boolean_literal(self, node: BooleanLiteral):
-        self.result = node.value
+        self.result = self.literal_constucor.get(node.value)
 
     def _visit_null_literal(self, node: NullLiteral):
-        self.result = node.value
+        self.result = self.literal_constucor.get(node.value)
 
     def _visit_identifier_expression(self, node: IdentifierExpression):
         if self.result is not None:
             try:
-                if self.set_property_name:
-                    self.property_name = node.name
-                    self.set_property_name = False
-                    return
                 self.result = getattr(self.result, node.name)
             except AttributeError:
                 self.error_thrown = PropertyError(
@@ -356,13 +335,12 @@ class Interpreter(IVisitor):
                     f"Class {type(self.result).__name__} does not have a property {node.name} or it's value is None",
                 )
         else:
-            if self.is_reference:
-                self.result = (
-                    self.current_environment.get_or_init_variable(node.name),
-                    node.name,
-                )
+            if not self.is_passed_by_value:
+                self.result = self.current_environment.get_or_init_variable(node.name)
                 return
-            self.result = self.current_environment.get_or_init_variable(node.name)
+            self.result = deepcopy(
+                self.current_environment.get_or_init_variable(node.name)
+            )
 
     def _visit_function_call_expression(self, node: FunctionCallExpression):
         if self.result is not None:
@@ -400,12 +378,7 @@ class Interpreter(IVisitor):
                 )
             if self.error_thrown:
                 return
-            old_environment = self.call_stack.pop()
-            for key, value in self.current_environment.references.items():
-                old_environment.set_or_init_variable(
-                    key, self.current_environment.get_or_init_variable(value)
-                )
-            self.current_environment = old_environment
+            self.current_environment = self.call_stack.pop()
 
     def _visit_property_access_expression(self, node: PropertyAccessExpression):
         self.__evaluate_property_access(node)
@@ -422,7 +395,7 @@ class Interpreter(IVisitor):
         node.condition.accept(self)
         if self.error_thrown:
             return
-        if self.__consume_result():
+        if self.__consume_result()._value:
             node.block.accept(self)
         else:
             for elif_block in node.elif_statements:
@@ -486,14 +459,16 @@ class Interpreter(IVisitor):
         if self.error_thrown:
             return
         result = self.__consume_result()
-        self.return_reference = True
-        node.variable.accept(self)
-        self.return_reference = False
-        if self.property_name:
-            setattr(self.__consume_result(), self.property_name, result)
-            self.property_name = None
-        else:
+        if self.error_thrown:
+            return
+        if isinstance(node.variable, IdentifierExpression):
             self.current_environment.set_or_init_variable(node.variable.name, result)
+        else:
+            node.variable.accept(self)
+            if self.error_thrown:
+                return
+            variable = self.__consume_result()
+            variable._value = result
 
     def _visit_assignment_plus_statement(self, node: AssignmentPlusStatement):
         func = lambda x, y: x + y

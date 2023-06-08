@@ -114,11 +114,12 @@ def test_init():
         ("Student()?.age", None),
         ("Array(1, 2)?.test()", None),
         # type checking
-        ("1 is int", True),
-        ("1.0 is float", True),
-        ("true is bool", True),
-        ("false is bool", True),
-        ('"Hello World" is str', True),
+        ("1 is Int", True),
+        ("1.0 is Float", True),
+        ("true is Boolean", True),
+        ("false is Boolean", True),
+        ('"Hello World" is String', True),
+        ("null is Null", True),
         ("Array() is Array", True),
         ("Student() is Student", True),
     ],
@@ -447,23 +448,23 @@ def test_function_call(
         ),
         (
             "x += 1",
-            TypeError,
+            VariableError,
         ),
         (
             "x -= 1",
-            TypeError,
+            VariableError,
         ),
         (
             "x *= 1",
-            TypeError,
+            VariableError,
         ),
         (
             "x /= 1",
-            TypeError,
+            VariableError,
         ),
         (
             "x %= 1",
-            TypeError,
+            VariableError,
         ),
         (
             "test()",
@@ -513,7 +514,7 @@ def test_oneliner_errors(expression, expected):
             ["main", "test"],
             ["test()", "x += 1"],
             ["", ""],
-            TypeError,
+            VariableError,
         ),
         (
             ["main", "test"],

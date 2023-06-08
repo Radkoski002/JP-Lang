@@ -1,17 +1,17 @@
+from interpreter.base_datatypes import Null
+
+
 class FunctionScope:
     def __init__(self):
-        self.references: dict[str, str] = {}
         self.variables_stack: list[dict[str, any]] = [{}]
 
     def get_or_init_variable(self, name: str) -> any:
         for variables in self.variables_stack:
             if name in variables:
                 return variables[name]
-        self.variables_stack[-1][name] = None
+        self.variables_stack[-1][name] = Null()
 
-    def set_or_init_variable(self, name: str, value: any, reference: str = False):
-        if reference:
-            self.references[reference] = name
+    def set_or_init_variable(self, name: str, value: any):
         for variables in self.variables_stack:
             if name in variables:
                 variables[name] = value

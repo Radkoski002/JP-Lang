@@ -1,4 +1,4 @@
-from utils.position_class import Position
+from interpreter.base_datatypes import Int
 
 
 class Array:
@@ -11,20 +11,20 @@ class Array:
     def remove(self, value: any):
         self._value.remove(value)
 
-    def removeAt(self, index: int):
-        self._value.pop(index)
+    def removeAt(self, index: Int):
+        self._value.pop(index._value)
 
     def clear(self):
         self._value.clear()
 
-    def get(self, index: int):
-        return self._value[index]
+    def get(self, index: Int):
+        return self._value[index._value]
 
-    def set(self, index: int, value: any):
-        self._value[index] = value
+    def set(self, index: Int, value: any):
+        self._value[index._value] = value
 
     def size(self):
-        return len(self._value)
+        return Int(len(self._value))
 
     def contains(self, value: any):
         return value in self._value
@@ -33,7 +33,7 @@ class Array:
         return self._value.index(value)
 
     def __str__(self) -> str:
-        return str(self._value)
+        return "[" + ", ".join([str(x) for x in self._value]) + "]"
 
 
 class Student:
@@ -41,3 +41,6 @@ class Student:
         self.name = name
         self.surname = surname
         self.age = age
+
+    def __str__(self) -> str:
+        return f"Student - {self.name} {self.surname} {self.age}"
