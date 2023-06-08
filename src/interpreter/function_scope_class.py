@@ -3,12 +3,6 @@ class FunctionScope:
         self.references: dict[str, str] = {}
         self.variables_stack: list[dict[str, any]] = [{}]
 
-    def expect_and_get_variable(self, name: str) -> any:
-        for variables in self.variables_stack:
-            if name in variables:
-                return variables[name]
-        raise Exception(f"Variable {name} is not defined")
-
     def get_or_init_variable(self, name: str) -> any:
         for variables in self.variables_stack:
             if name in variables:

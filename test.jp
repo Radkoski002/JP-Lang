@@ -1,6 +1,4 @@
 main() {
-        x = Student("John", "Doe", 3.5);
-        y = Student(x, "Test", 3.5);
-        print(y.name.surname);
+        x += 1;
 }
 

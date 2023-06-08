@@ -34,6 +34,11 @@ class Interpreter(IVisitor):
         self.error_position: Position | None = None
         self.function_call_position: Position | None = None
 
+        self.property_access_depth: int = 0
+        self.set_property_name: bool = False
+        self.property_name: str | None = None
+        self.return_reference: bool = False
+
         self.max_call_stack_size = 100
 
     def __consume_result(self) -> any:
@@ -98,19 +103,36 @@ class Interpreter(IVisitor):
     def __evaluate_arithmetic_assignment(
         self, node: any, function: function, operator: str, check_div=False
     ):
-        node.expression.accept(self)
-        left = self.__expect_value(node)
-        if self.error_thrown:
+        try:
+            self.return_reference = True
+            node.variable.accept(self)
+            self.return_reference = False
+            if self.property_name:
+                parent = self.__consume_result()
+                left = getattr(parent, self.property_name)
+            else:
+                left = self.current_environment.get_or_init_variable(node.variable.name)
+        except:
+            self.error_thrown = VariableError(
+                node.position,
+                f"Variable {node.variable.name} is not defined",
+            )
             return
+        self.return_reference = False
+        node.expression.accept(self)
         right = self.__consume_result()
         if self.__check_arithmetic_types(left, right, operator, node.position) or (
             check_div
             and self.__check_division_by_zero(left, right, operator, node.position)
         ):
             return
-        self.current_environment.set_or_init_variable(
-            node.variable.name, function(left, right)
-        )
+        if self.property_name:
+            setattr(parent, self.property_name, function(left, right))
+            self.property_name = None
+        else:
+            self.current_environment.set_or_init_variable(
+                node.variable.name, function(left, right)
+            )
 
     def __evaluate_arguments(self, arguments: list[Argument]):
         evaluated = []
@@ -122,20 +144,12 @@ class Interpreter(IVisitor):
     def __evaluate_property_access(
         self, node: PropertyAccessExpression | OptionalPropertyAccessExpression
     ):
+        self.property_access_depth += 1
         node.left.accept(self)
-        left = self.__consume_result()
-        self.result = left
+        if self.return_reference and self.property_access_depth == 1:
+            self.set_property_name = True
         node.right.accept(self)
-        return left
-
-    def __expect_value(self, node: any):
-        try:
-            return self.current_environment.expect_and_get_variable(node.variable.name)
-        except:
-            self.error_thrown = VariableError(
-                node.position,
-                f"Variable {node.variable.name} is not defined",
-            )
+        self.property_access_depth -= 1
 
     def _visit_program(self, node: Program):
         self.program = node
@@ -331,6 +345,10 @@ class Interpreter(IVisitor):
     def _visit_identifier_expression(self, node: IdentifierExpression):
         if self.result is not None:
             try:
+                if self.set_property_name:
+                    self.property_name = node.name
+                    self.set_property_name = False
+                    return
                 self.result = getattr(self.result, node.name)
             except AttributeError:
                 self.error_thrown = PropertyError(
@@ -385,7 +403,7 @@ class Interpreter(IVisitor):
             old_environment = self.call_stack.pop()
             for key, value in self.current_environment.references.items():
                 old_environment.set_or_init_variable(
-                    key, self.current_environment.expect_and_get_variable(value)
+                    key, self.current_environment.get_or_init_variable(value)
                 )
             self.current_environment = old_environment
 
@@ -467,9 +485,15 @@ class Interpreter(IVisitor):
         node.expression.accept(self)
         if self.error_thrown:
             return
-        self.current_environment.set_or_init_variable(
-            node.variable.name, self.__consume_result()
-        )
+        result = self.__consume_result()
+        self.return_reference = True
+        node.variable.accept(self)
+        self.return_reference = False
+        if self.property_name:
+            setattr(self.__consume_result(), self.property_name, result)
+            self.property_name = None
+        else:
+            self.current_environment.set_or_init_variable(node.variable.name, result)
 
     def _visit_assignment_plus_statement(self, node: AssignmentPlusStatement):
         func = lambda x, y: x + y

@@ -292,7 +292,13 @@ def test_try_catch_without_params(expression, capsys):
         (
             ["main"],
             [""],
-            [['x = Student("John", "Doe", 20);', 'x.name = "Maciej";, print(x.name);']],
+            [
+                [
+                    'x = Student("John", "Doe", 20);',
+                    'x.name = "Maciej";',
+                    "print(x.name);",
+                ]
+            ],
             "Maciej",
         ),
         (
@@ -441,23 +447,23 @@ def test_function_call(
         ),
         (
             "x += 1",
-            VariableError,
+            TypeError,
         ),
         (
             "x -= 1",
-            VariableError,
+            TypeError,
         ),
         (
             "x *= 1",
-            VariableError,
+            TypeError,
         ),
         (
             "x /= 1",
-            VariableError,
+            TypeError,
         ),
         (
             "x %= 1",
-            VariableError,
+            TypeError,
         ),
         (
             "test()",
@@ -507,7 +513,7 @@ def test_oneliner_errors(expression, expected):
             ["main", "test"],
             ["test()", "x += 1"],
             ["", ""],
-            VariableError,
+            TypeError,
         ),
         (
             ["main", "test"],
