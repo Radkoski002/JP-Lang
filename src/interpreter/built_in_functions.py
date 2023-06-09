@@ -5,7 +5,7 @@ from typing import TYPE_CHECKING
 
 from interpreter.interpreter_error_classes import *
 from interpreter.built_in_classes import *
-from interpreter.base_datatypes import *
+from interpreter.value_class import *
 
 if TYPE_CHECKING:
     from interpreter.visitor_interface import IVisitor
@@ -20,7 +20,7 @@ class BuiltInFunction(ABC):
         pass
 
     def _get_optional_values(self, args: list[any]):
-        return [Null()] * (self.argc - len(args))
+        return [Value(None) for _ in range(self.argc - len(args))]
 
     def accept(self, visitor: IVisitor):
         visitor.visit(self)
@@ -96,16 +96,6 @@ class ErrorConstructor(BuiltInFunction):
         return self._constructor(*args)
 
 
-class TypeCastFunction(BuiltInFunction):
-    def __init__(self, constructor: BaseDataType):
-        self._type_constructor = constructor
-        self.name = type(constructor).__name__
-        self.argc = 1
-
-    def execute(self, args: list[any]):
-        return self._type_constructor(args[0]._value)
-
-
 def get_built_in_functions() -> dict[str, BuiltInFunction]:
     return {
         "print": PrintFunction(),
@@ -121,9 +111,7 @@ def get_built_in_functions() -> dict[str, BuiltInFunction]:
         "VariableError": ErrorConstructor(VariableError),
         "RuntimeError": ErrorConstructor(RuntimeError),
         "PropertyError": ErrorConstructor(PropertyError),
-        "Int": TypeCastFunction(Int),
-        "Float": TypeCastFunction(Float),
-        "String": TypeCastFunction(String),
-        "Boolean": TypeCastFunction(Boolean),
-        "Null": TypeCastFunction(Null),
+        "FunctionError": ErrorConstructor(FunctionError),
+        "StackOverflowError": ErrorConstructor(StackOverflowError),
+        "ValueError": ErrorConstructor(ValueError),
     }

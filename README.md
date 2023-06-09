@@ -23,11 +23,11 @@
 ### Wbudowane typy
 
 - Podstawowe typy
-  - int
-  - float
-  - str
-  - bool
-  - null
+  - Int
+  - Float
+  - String
+  - Boolean
+  - Null
 - Typy złożone
   - Array
     - Metody
@@ -54,10 +54,15 @@ Każdy błąd posiada informacje o linii i kolumnie w których wystąpił.
 - RuntimeError
 - PropertyError
 - FunctionError
+- StackOverflowError
+- ValueError
   
 ### Wbudowane funkcje
 
 - print(args); - wypisuje na ekranie wartości przekazane jako argumenty oddzielone przecinkami
+- inputInt(); - zwraca wartość wpisaną przez użytkownika typu Int
+- inputFloat(); - zwraca wartość wpisaną przez użytkownika typu Float
+- inputString(); - zwraca wartość wpisaną przez użytkownika typu String
 
 ### Właściwości zmiennych
 
@@ -94,14 +99,15 @@ warunek może być wyrażeniem logicznym lub wyrażeniem zwracającym wartość 
 ### Pętle
 
 - while (warunek) { instrukcje }
-- for (zmienna: tablica) { instrukcje }
+- for (zmienna: Array) { instrukcje }
 
 warunek może być wyrażeniem logicznym lub wyrażeniem zwracającym wartość typu bool
+Pętla for działa na kopii Array, więc zmiana rozmiaru Array nie wpłynie na działanie pętli.
 
 ### Rzucanie wyjątków
 
 Aby rzucić wyjątek należy użyć słowa kluczowego throw a następnie wywołać konstruktor klasy błędu.
-Konstruktor klasy błędu będzie zawierał dwa opcjonalne pola, pierwszym będzie komunikat który ma zostać wyświetlony po rzucenu wyjątku, a drugim wartość zmiennej której dotyczy błąd.
+Konstruktor klasy błędu będzie zawierał tylko opcjonalne pola z czego, pierwszym będzie komunikat który ma zostać wyświetlony po rzucenu wyjątku, a kolejnymi wartości których dotyczy błąd.
 
 `throw ArgumentError("Argument x cannot be negative. Value of x is: ", x);`
 
@@ -139,6 +145,7 @@ Po zdefiniowaniu klasy należy dodać ją do funkcji `get_built_in_functions` zw
 Funkcja ta znajduje się w pliku `builtInFunctions.py`.
 
 Aby zdefiniować własną klasę działamy dość podobnie.
+Przy definiowaniu klasy należy zwrócić uwagę aby wszystkie przyjmowane przez nią argumenty i zwracane przez nią wartości były typu `Value`.
 Po zdefiniowaniu własnej pythonowej klasy definiujemy kolejną funkcję wbudowaną będącą konstruktorem danej klasy.
 W metodzie `__init__` podajemy nazwę klasy (`self.name`) oraz listę argumentów potrzebnych przy inicjowaniu klasy (`self.args`).
 Metoda `execute` konstruuje obiekt klasy na podstawie podanych argumentów i zwraca go.
@@ -296,7 +303,8 @@ Aby uruchomić interpreter należy uruchomić skrypt pythonowy interpretera.
 Interpreter będzie uruchamiany za pomocą komendy:
 
 ```bash
-./main.py [plik]
+python3 src/main.py [plik]
+
 ```
 
 ## Przykładowe programy

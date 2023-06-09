@@ -1,9 +1,8 @@
-test(x) {
-    x = 10;
-}
-
-main() {
-    x = Student();
-    test(@x);
-    print(x);
+main(){
+    try {
+        throw Error("test", 1, 2, 3);
+    } catch (Error e) {
+        print(e.message);
+        print(e.args.get(0));
+    }
 }

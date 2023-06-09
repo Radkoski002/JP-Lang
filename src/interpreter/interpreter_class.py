@@ -7,7 +7,6 @@ from itertools import zip_longest
 from interpreter.built_in_functions import *
 from interpreter.interpreter_error_classes import *
 from interpreter.function_scope_class import FunctionScope
-from interpreter.base_datatypes import LiteralConstructor
 from utils.error_handler_class import ErrorHandler
 from parser.statement_classes import IdentifierExpression
 
@@ -22,12 +21,10 @@ class Interpreter(IVisitor):
         self.result: any = None
         self.error_handler: ErrorHandler = error_handler
         self.program: Program | None = None
-        self.literal_constucor = LiteralConstructor()
 
         self.current_environment: FunctionScope | None = None
         self.call_stack: list[FunctionScope] = []
 
-        self.loop_scopes: int = 0
         self.break_called: bool = False
         self.continue_called: bool = False
         self.return_called: bool = False
@@ -60,9 +57,11 @@ class Interpreter(IVisitor):
             or isinstance(left, bool)
             or isinstance(right, bool)
         ):
-            self.error_thrown = TypeError(
-                position,
-                f"Cannot apply operator {operator} to given values: {left}{f' and {right}' if not one_side else ''}",
+            self.error_thrown = Value(
+                TypeError(
+                    position,
+                    f"Cannot apply operator {operator} to given values: {left}{f' and {right}' if not one_side else ''}",
+                )
             )
             return True
         return False
@@ -71,9 +70,11 @@ class Interpreter(IVisitor):
         self, left: any, right: any, operator: str, position: Position, one_side=False
     ):
         if not isinstance(left, bool) or not isinstance(right, bool):
-            self.error_thrown = TypeError(
-                position,
-                f"Cannot apply operator {operator} to given values: {left}{f' and {right}' if not one_side else ''}",
+            self.error_thrown = Value(
+                TypeError(
+                    position,
+                    f"Cannot apply operator {operator} to given values: {left}{f' and {right}' if not one_side else ''}",
+                )
             )
             return True
         return False
@@ -82,9 +83,11 @@ class Interpreter(IVisitor):
         self, left: any, right: any, operator: str, position: Position
     ):
         if right == 0:
-            self.error_thrown = ValueError(
-                position,
-                f"Cannot apply operator {operator} if right side is 0.",
+            self.error_thrown = Value(
+                ValueError(
+                    position,
+                    f"Cannot apply operator {operator} if right side is 0.",
+                )
             )
             return True
         return False
@@ -96,7 +99,7 @@ class Interpreter(IVisitor):
         for func in check_funcs:
             if func(left, right, operator, node.position):
                 return
-        self.result = self.literal_constucor.get(function(left, right))
+        self.result = Value(function(left, right))
 
     def __evaluate_arithmetic_assignment(
         self, node: any, function: function, operator: str, check_div=False
@@ -104,8 +107,10 @@ class Interpreter(IVisitor):
         node.variable.accept(self)
         left = self.__consume_result()
         if left == None:
-            self.error_thrown = VariableError(
-                node.position, f"Variable {node.variable.name} is not defined"
+            self.error_thrown = Value(
+                VariableError(
+                    node.position, f"Variable {node.variable.name} is not defined"
+                )
             )
             return
         node.expression.accept(self)
@@ -146,7 +151,7 @@ class Interpreter(IVisitor):
         if function := node.functions.get("main"):
             function.accept(self)
             if self.error_thrown:
-                self.error_handler.raise_critical_error(self.error_thrown)
+                self.error_handler.raise_critical_error(self.error_thrown._value)
                 return
         else:
             self.error_handler.raise_critical_error(
@@ -160,34 +165,42 @@ class Interpreter(IVisitor):
             else self.__consume_result()
         )
         if node.argc != None and node.argc < len(arguments):
-            self.error_thrown = ArgumentError(
-                self.function_call_position,
-                f"Function {node.name} takes max of {node.argc} arguments, {len(arguments)} given",
+            self.error_thrown = Value(
+                ArgumentError(
+                    self.function_call_position,
+                    f"Function {node.name} takes max of {node.argc} arguments, {len(arguments)} given",
+                )
             )
             return
-        self.result = node.execute(arguments)
+        self.result = Value(node.execute(arguments))
 
     def _visit_function_definition(self, node: FunctionDef):
         if node.name == "main" and len(node.parameters) > 0:
-            self.error_thrown = ArgumentError(
-                node.position,
-                "Main function cannot take any arguments",
+            self.error_thrown = Value(
+                ArgumentError(
+                    node.position,
+                    "Main function cannot take any arguments",
+                )
             )
             return
         new_env = FunctionScope()
         args = self.__consume_result()
         if args != None:
             if len(args) > len(node.parameters):
-                self.error_thrown = ArgumentError(
-                    node.position,
-                    f"Function {node.name} takes {len(node.parameters)} arguments, {len(args)} given",
+                self.error_thrown = Value(
+                    ArgumentError(
+                        node.position,
+                        f"Function {node.name} takes {len(node.parameters)} arguments, {len(args)} given",
+                    )
                 )
                 return
             for param, value in zip_longest(node.parameters, args):
                 if not param.is_optional and value is None:
-                    self.error_thrown = ArgumentError(
-                        node.position,
-                        f"Parameter {param.name} is not optional",
+                    self.error_thrown = Value(
+                        ArgumentError(
+                            node.position,
+                            f"Parameter {param.name} is not optional",
+                        )
                     )
                     return
                 elif param.is_optional and value is None:
@@ -211,7 +224,7 @@ class Interpreter(IVisitor):
             statement.accept(self)
             if (
                 (self.break_called or self.continue_called)
-                and self.loop_scopes > 0
+                and self.current_environment.loop_depth > 0
                 or self.return_called
                 or self.error_thrown
             ):
@@ -300,43 +313,45 @@ class Interpreter(IVisitor):
         value = self.__consume_result()
         if self.__check_boolean_types(value._value, True, "!", node.position, True):
             return
-        self.result = self.literal_constucor.get(not value._value)
+        self.result = Value(not value._value)
 
     def _visit_numeric_negation_expression(self, node: NumericNegationExpression):
         node.expression.accept(self)
         value = self.__consume_result()
         if self.__check_arithmetic_types(value._value, 0, "-", node.position, True):
             return
-        self.result = self.literal_constucor.get(-value._value)
+        self.result = Value(-value._value)
 
     def _visit_type_check_expression(self, node: TypeCheckExpression):
         node.expression.accept(self)
         value = self.__consume_result()
-        self.result = type(value).__name__ == node.type_name
+        self.result = Value(value._type == node.type_name)
 
     def _visit_string_literal(self, node: StringLiteral):
-        self.result = self.literal_constucor.get(node.value)
+        self.result = Value(node.value)
 
     def _visit_integer_literal(self, node: IntegerLiteral):
-        self.result = self.literal_constucor.get(node.value)
+        self.result = Value(node.value)
 
     def _visit_float_literal(self, node: FloatLiteral):
-        self.result = self.literal_constucor.get(node.value)
+        self.result = Value(node.value)
 
     def _visit_boolean_literal(self, node: BooleanLiteral):
-        self.result = self.literal_constucor.get(node.value)
+        self.result = Value(node.value)
 
     def _visit_null_literal(self, node: NullLiteral):
-        self.result = self.literal_constucor.get(node.value)
+        self.result = Value(node.value)
 
     def _visit_identifier_expression(self, node: IdentifierExpression):
         if self.result is not None:
             try:
-                self.result = getattr(self.result, node.name)
+                self.result = getattr(self.result._value, node.name)
             except AttributeError:
-                self.error_thrown = PropertyError(
-                    node.position,
-                    f"Class {type(self.result).__name__} does not have a property {node.name} or it's value is None",
+                self.error_thrown = Value(
+                    PropertyError(
+                        node.position,
+                        f"Class {type(self.result).__name__} does not have a property {node.name} or it's value is None",
+                    )
                 )
         else:
             if not self.is_passed_by_value:
@@ -350,35 +365,43 @@ class Interpreter(IVisitor):
         if self.result is not None:
             built_in_class = self.__consume_result()
             try:
-                function = getattr(built_in_class, node.name)
+                function = getattr(built_in_class._value, node.name)
                 self.result = function(*self.__evaluate_arguments(node.arguments))
             except AttributeError:
-                self.error_thrown = PropertyError(
-                    node.position,
-                    f"Class {type(built_in_class).__name__} does not have a method {node.name}",
+                self.error_thrown = Value(
+                    PropertyError(
+                        node.position,
+                        f"Class {type(built_in_class).__name__} does not have a method {node.name}",
+                    )
                 )
         else:
             if node.name == "main":
-                self.error_thrown = FunctionError(
-                    node.position,
-                    "main function cannot be called",
+                self.error_thrown = Value(
+                    FunctionError(
+                        node.position,
+                        "main function cannot be called",
+                    )
                 )
                 return
             self.result = self.__evaluate_arguments(node.arguments)
             self.function_call_position = node.position
             if len(self.call_stack) == self.max_call_stack_size:
-                self.error_thrown = StackOverflowError(
-                    node.position,
-                    f"Maximum call stack size of {self.max_call_stack_size} exceeded",
+                self.error_thrown = Value(
+                    StackOverflowError(
+                        node.position,
+                        f"Maximum call stack size of {self.max_call_stack_size} exceeded",
+                    )
                 )
                 return
             self.call_stack.append(self.current_environment)
             if function := self.program.functions.get(node.name):
                 function.accept(self)
             else:
-                self.error_thrown = FunctionError(
-                    node.position,
-                    f"Function {node.name} is not defined",
+                self.error_thrown = Value(
+                    FunctionError(
+                        node.position,
+                        f"Function {node.name} is not defined",
+                    )
                 )
             if self.error_thrown:
                 return
@@ -391,9 +414,9 @@ class Interpreter(IVisitor):
         self, node: OptionalPropertyAccessExpression
     ):
         self.__evaluate_property_access(node)
-        if isinstance(self.error_thrown, PropertyError):
+        if self.error_thrown and isinstance(self.error_thrown._value, PropertyError):
             self.error_thrown = None
-            self.result = Null()
+            self.result = Value(None)
 
     def _visit_if_statement(self, node: IfStatement):
         node.condition.accept(self)
@@ -412,9 +435,8 @@ class Interpreter(IVisitor):
             if node.else_statement is not None:
                 node.else_statement.accept(self)
 
-    # TODO: Move loop scopes to calling scope
     def _visit_while_statement(self, node: WhileStatement):
-        self.loop_scopes += 1
+        self.current_environment.loop_depth += 1
         while True:
             node.condition.accept(self)
             if not self.__consume_result()._value:
@@ -426,18 +448,18 @@ class Interpreter(IVisitor):
             if self.continue_called:
                 self.continue_called = False
             if self.error_thrown:
-                self.loop_scopes -= 1
+                self.current_environment.loop_depth -= 1
                 return
 
-        self.loop_scopes -= 1
+        self.current_environment.loop_depth -= 1
 
     def _visit_for_statement(self, node: ForStatement):
-        self.loop_scopes += 1
+        self.current_environment.loop_depth += 1
         node.iterable.accept(self)
-        iterable = deepcopy(self.__consume_result())
+        iterable = deepcopy(self.__consume_result()._value)
         if not isinstance(iterable, Array):
-            self.error_thrown = TypeError(
-                node.position, "For loop can only iterate over array"
+            self.error_thrown = Value(
+                TypeError(node.position, "For loop can only iterate over array")
             )
             return
         for item in iterable._value:
@@ -449,9 +471,9 @@ class Interpreter(IVisitor):
             if self.continue_called:
                 self.continue_called = False
             if self.error_thrown:
-                self.loop_scopes -= 1
+                self.current_environment.loop_depth -= 1
                 return
-        self.loop_scopes -= 1
+        self.current_environment.loop_depth -= 1
 
     def _visit_return_statement(self, node: ReturnStatement):
         if node.expression is not None:
@@ -466,13 +488,14 @@ class Interpreter(IVisitor):
         if self.error_thrown:
             return
         if isinstance(node.variable, IdentifierExpression):
-            self.current_environment.set_or_init_variable(node.variable.name, result)
+            var = self.current_environment.get_or_init_variable(node.variable.name)
+            var.set_value(result._value)
         else:
             node.variable.accept(self)
             if self.error_thrown:
                 return
             variable = self.__consume_result()
-            variable._value = result
+            variable.set_value(result._value)
 
     def _visit_assignment_plus_statement(self, node: AssignmentPlusStatement):
         func = lambda x, y: x + y
@@ -504,14 +527,18 @@ class Interpreter(IVisitor):
                     return
                 for error_type in catch_block.error_types:
                     if error_type.name not in self.program.functions:
-                        self.error_thrown = TypeError(
-                            node.position,
-                            f"Unknown error type {error_type.name}",
+                        self.error_thrown = Value(
+                            TypeError(
+                                node.position,
+                                f"Unknown error type {error_type.name}",
+                            )
                         )
                         return
                     if isinstance(
-                        self.error_thrown.__class__, eval(error_type.name)
-                    ) or issubclass(self.error_thrown.__class__, eval(error_type.name)):
+                        self.error_thrown._value.__class__, eval(error_type.name)
+                    ) or issubclass(
+                        self.error_thrown._value.__class__, eval(error_type.name)
+                    ):
                         self.result = {catch_block.error_var.name: self.error_thrown}
                         self.error_thrown = None
                         catch_block.catch_statement.accept(self)
@@ -521,24 +548,28 @@ class Interpreter(IVisitor):
         self.error_position = node.position
         node.expression.accept(self)
         self.error_thrown = self.__consume_result()
-        if not isinstance(self.error_thrown, Error):
-            self.error_thrown = TypeError(
-                node.position, "Throw statement can only throw error"
+        if not isinstance(self.error_thrown._value, Error):
+            self.error_thrown = Value(
+                TypeError(node.position, "Throw statement can only throw error")
             )
         self.error_position = None
 
     def _visit_break_statement(self, node: BreakStatement):
-        if self.loop_scopes == 0:
-            self.error_thrown = ExpressionError(
-                node.position,
-                "break statement can only be used in loop",
+        if self.current_environment.loop_depth == 0:
+            self.error_thrown = Value(
+                ExpressionError(
+                    node.position,
+                    "break statement can only be used in loop",
+                )
             )
         self.break_called = True
 
     def _visit_continue_statement(self, node: ContinueStatement):
-        if self.loop_scopes == 0:
-            self.error_thrown = ExpressionError(
-                node.position,
-                "continue statement can only be used in loop",
+        if self.current_environment.loop_depth == 0:
+            self.error_thrown = Value(
+                ExpressionError(
+                    node.position,
+                    "continue statement can only be used in loop",
+                )
             )
         self.continue_called = True

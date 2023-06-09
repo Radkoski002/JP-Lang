@@ -1,15 +1,17 @@
-from interpreter.base_datatypes import Null
+from interpreter.value_class import Value
 
 
 class FunctionScope:
     def __init__(self):
         self.variables_stack: list[dict[str, any]] = [{}]
+        self.loop_depth = 0
 
     def get_or_init_variable(self, name: str) -> any:
         for variables in self.variables_stack:
             if name in variables:
                 return variables[name]
-        self.variables_stack[-1][name] = Null()
+        self.variables_stack[-1][name] = Value(None)
+        return self.variables_stack[-1][name]
 
     def set_or_init_variable(self, name: str, value: any):
         for variables in self.variables_stack:
@@ -35,6 +37,3 @@ class FunctionScope:
     def exit_scope(self):
         if len(self.variables_stack) != 0:
             del self.variables_stack[-1]
-        self.break_called = False
-        self.continue_called = False
-        self.return_called = False

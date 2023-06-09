@@ -331,6 +331,24 @@ def test_try_catch_without_params(expression, capsys):
             ["test", "main"],
             ["x", ""],
             [
+                ["x = 2;"],
+                ["x = 1;", "test(x);", "print(x);"],
+            ],
+            "1",
+        ),
+        (
+            ["test", "main"],
+            ["x", ""],
+            [
+                ["x = 2;"],
+                ["x = 1;", "test(@x);", "print(x);"],
+            ],
+            "2",
+        ),
+        (
+            ["test", "main"],
+            ["x", ""],
+            [
                 ["x += 1;"],
                 ["x = 1;", "test(x);", "print(x);"],
             ],
