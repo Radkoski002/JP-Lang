@@ -7,8 +7,8 @@ main() {
 
     for (stud: stud_arr) {
         if(stud?.age == null) {
-            print("Student doesn't have age information");
+            print("Student doesn't have age information\n");
         }
-        print(stud.name, stud.surname, stud?.age);
+        print(stud.name, " ", stud.surname, " ", stud?.age, "\n");
     }
 }

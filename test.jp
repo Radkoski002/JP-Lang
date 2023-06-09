@@ -1,11 +1,9 @@
 test(x) {
-        x.name = "Krzysztof";
-        print(x, "\n");
+    x = 10;
 }
 
 main() {
-        a = Student("Maciej", "Boruwa", "20");
-        test(@a);
-        print(a);
+    x = Student();
+    test(@x);
+    print(x);
 }
-

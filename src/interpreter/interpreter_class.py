@@ -109,6 +109,8 @@ class Interpreter(IVisitor):
             )
             return
         node.expression.accept(self)
+        if self.error_thrown:
+            return
         right = self.__consume_result()
         left_val, right_val = left._value, right._value
         if self.__check_arithmetic_types(
@@ -126,6 +128,8 @@ class Interpreter(IVisitor):
         evaluated = []
         for argument in arguments:
             argument.accept(self)
+            if self.error_thrown:
+                return evaluated
             evaluated.append(self.__consume_result())
         return evaluated
 
@@ -205,7 +209,6 @@ class Interpreter(IVisitor):
         self.current_environment.enter_scope(self.__consume_result())
         for statement in node.statements:
             statement.accept(self)
-            self.result = None
             if (
                 (self.break_called or self.continue_called)
                 and self.loop_scopes > 0
@@ -213,6 +216,7 @@ class Interpreter(IVisitor):
                 or self.error_thrown
             ):
                 break
+            self.result = None
         self.current_environment.exit_scope()
 
     def _visit_add_expression(self, node: AddExpression):
@@ -389,7 +393,7 @@ class Interpreter(IVisitor):
         self.__evaluate_property_access(node)
         if isinstance(self.error_thrown, PropertyError):
             self.error_thrown = None
-            self.result = None
+            self.result = Null()
 
     def _visit_if_statement(self, node: IfStatement):
         node.condition.accept(self)
@@ -402,7 +406,7 @@ class Interpreter(IVisitor):
                 elif_block.condition.accept(self)
                 if self.error_thrown:
                     return
-                if self.__consume_result():
+                if self.__consume_result()._value:
                     elif_block.block.accept(self)
                     return
             if node.else_statement is not None:
@@ -413,7 +417,7 @@ class Interpreter(IVisitor):
         self.loop_scopes += 1
         while True:
             node.condition.accept(self)
-            if not self.__consume_result():
+            if not self.__consume_result()._value:
                 break
             node.block.accept(self)
             if self.break_called:
@@ -430,7 +434,7 @@ class Interpreter(IVisitor):
     def _visit_for_statement(self, node: ForStatement):
         self.loop_scopes += 1
         node.iterable.accept(self)
-        iterable = self.__consume_result()
+        iterable = deepcopy(self.__consume_result())
         if not isinstance(iterable, Array):
             self.error_thrown = TypeError(
                 node.position, "For loop can only iterate over array"

@@ -41,6 +41,7 @@ class Student:
         self.name = name
         self.surname = surname
         self.age = age
+        self._value = self
 
     def __str__(self) -> str:
         return f"Student - {self.name} {self.surname} {self.age}"

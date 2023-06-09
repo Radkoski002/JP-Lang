@@ -109,10 +109,10 @@ def test_init():
         ('Student("Maciej", "Boruwa", 20).name', "Maciej"),
         ('Student("Maciej", "Boruwa", 20).surname', "Boruwa"),
         ('Student("Maciej", "Boruwa", 20).age', "20"),
-        ("Student()?.name", None),
-        ("Student()?.surname", None),
-        ("Student()?.age", None),
-        ("Array(1, 2)?.test()", None),
+        ("Student()?.name", "null"),
+        ("Student()?.surname", "null"),
+        ("Student()?.age", "null"),
+        ("Array(1, 2)?.test()", "null"),
         # type checking
         ("1 is Int", True),
         ("1.0 is Float", True),
@@ -303,6 +303,18 @@ def test_try_catch_without_params(expression, capsys):
             "Maciej",
         ),
         (
+            ["main"],
+            [""],
+            [
+                [
+                    'x = Student("John", "Doe", 20);',
+                    "x.age += 10;",
+                    "print(x.age);",
+                ]
+            ],
+            "30",
+        ),
+        (
             ["test", "main"],
             ["x", ""],
             [
@@ -320,9 +332,54 @@ def test_try_catch_without_params(expression, capsys):
             ["x", ""],
             [
                 ["x += 1;"],
+                ["x = 1;", "test(x);", "print(x);"],
+            ],
+            "1",
+        ),
+        (
+            ["test", "main"],
+            ["x", ""],
+            [
+                ["x += 1;"],
                 ["x = 1;", "test(@x);", "print(x);"],
             ],
             "2",
+        ),
+        (
+            ["test", "main"],
+            ["x", ""],
+            [
+                ['x.name = "Maciej";'],
+                ['x = Student("John", "Doe", 20);', "test(x);", "print(x.name);"],
+            ],
+            "John",
+        ),
+        (
+            ["test", "main"],
+            ["x", ""],
+            [
+                ['x.name = "Maciej";'],
+                ['x = Student("John", "Doe", 20);', "test(@x);", "print(x.name);"],
+            ],
+            "Maciej",
+        ),
+        (
+            ["test", "main"],
+            ["x", ""],
+            [
+                ["x.age += 10;"],
+                ['x = Student("John", "Doe", 20);', "test(x);", "print(x.age);"],
+            ],
+            "20",
+        ),
+        (
+            ["test", "main"],
+            ["x", ""],
+            [
+                ["x.age += 10;"],
+                ['x = Student("John", "Doe", 20);', "test(@x);", "print(x.age);"],
+            ],
+            "30",
         ),
         (
             ["test", "main"],
