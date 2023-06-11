@@ -205,6 +205,53 @@ def test_if_else_statement(capsys, condition, expected):
 
 
 @pytest.mark.parametrize(
+    "if_condition, elif_condition, expected",
+    [
+        ("true", "false", "1"),
+        ("1 > 0", "1 < 0", "1"),
+        ("1 < 2", "1 > 2", "1"),
+        ("1 >= 1", "1 < 1", "1"),
+        ("1 <= 1", "1 > 1", "1"),
+        ("1 == 1", "1 != 1", "1"),
+        ("1 != 2", "1 == 2", "1"),
+        ("1.0 > 0.0", "1.0 < 0.0", "1"),
+        ("1.0 < 2.0", "1.0 > 2.0", "1"),
+        ("1.0 >= 1.0", "1.0 < 1.0", "1"),
+        ("1.0 <= 1.0", "1.0 > 1.0", "1"),
+        ("1.0 == 1.0", "1.0 != 1.0", "1"),
+        ("1.0 != 2.0", "1.0 == 2.0", "1"),
+        ("false", "true", "2"),
+        ("1 > 2", "1 < 2", "2"),
+        ("1 < 0", "1 > 0", "2"),
+        ("1 >= 2", "1 < 2", "2"),
+        ("1 <= 0", "1 > 0", "2"),
+        ("1 == 2", "1 != 2", "2"),
+        ("1 != 1", "1 == 1", "2"),
+        ("1.0 > 2.0", "1.0 < 2.0", "2"),
+        ("1.0 < 0.0", "1.0 > 0.0", "2"),
+        ("1.0 >= 2.0", "1.0 <= 2.0", "2"),
+        ("1.0 <= 0.0", "1.0 >= 0.0", "2"),
+        ("1.0 == 2.0", "1.0 != 2.0", "2"),
+        ("1.0 != 1.0", "1.0 == 1.0", "2"),
+        ("false", "false", "3"),
+    ],
+)
+def test_if_elif_else_statement(capsys, if_condition, elif_condition, expected):
+    template = funcion_template(
+        "main",
+        [
+            conditional_template("if", if_condition, "print(1);"),
+            conditional_template("elif", elif_condition, "print(2);"),
+            block_template("else", "print(3);"),
+        ],
+    )
+    error_handler = interpreter_init([template])
+    out = capsys.readouterr()
+    assert out.out == f"{expected}"
+    assert len(error_handler.errors) == 0
+
+
+@pytest.mark.parametrize(
     "init_value, expression, expected",
     [
         # value change
@@ -255,6 +302,77 @@ def test_variable_change_expressions(capsys, init_value, expression, expected):
             "print(a);",
         ],
     )
+    error_handler = interpreter_init([template])
+    out = capsys.readouterr()
+    assert out.out == f"{expected}"
+    assert len(error_handler.errors) == 0
+
+
+@pytest.mark.parametrize(
+    "expressions, expected",
+    [
+        (
+            [
+                "x = true;",
+                conditional_template("while", "x", 'print("test"); x = false;'),
+            ],
+            "test",
+        ),
+        (
+            [
+                "x = 0;",
+                conditional_template(
+                    "while",
+                    "x < 3",
+                    "x += 1; print(x);",
+                ),
+            ],
+            "123",
+        ),
+        (
+            [
+                "x = 0;",
+                conditional_template(
+                    "while",
+                    "x < 5",
+                    f'x += 1; {conditional_template("if", "x % 2 == 0", "continue;")} print(x);',
+                ),
+            ],
+            "135",
+        ),
+        (
+            [
+                "x = Array(1, 2, 3);",
+                conditional_template("for", "i : x", "print(i);"),
+            ],
+            "123",
+        ),
+        (
+            [
+                "x = Array(1, 2, 3, 4, 5);",
+                conditional_template(
+                    "for",
+                    "i : x",
+                    f'print(i); {conditional_template("if", "i == 3", "break;")}',
+                ),
+            ],
+            "123",
+        ),
+        (
+            [
+                "x = Array(1, 2, 3, 4, 5);",
+                conditional_template(
+                    "for",
+                    "i : x",
+                    f'{conditional_template("if", "i % 2 == 0", "continue;")} print(i);',
+                ),
+            ],
+            "135",
+        ),
+    ],
+)
+def test_loops(expressions, expected, capsys):
+    template = funcion_template("main", expressions)
     error_handler = interpreter_init([template])
     out = capsys.readouterr()
     assert out.out == f"{expected}"
@@ -341,7 +459,7 @@ def test_try_catch_without_params(expression, capsys):
             ["x", ""],
             [
                 ["x = 2;"],
-                ["x = 1;", "test(@x);", "print(x);"],
+                ["a = 1;", "test(@a);", "print(a);"],
             ],
             "2",
         ),
@@ -350,7 +468,7 @@ def test_try_catch_without_params(expression, capsys):
             ["x", ""],
             [
                 ["x += 1;"],
-                ["x = 1;", "test(x);", "print(x);"],
+                ["a = 1;", "test(a);", "print(a);"],
             ],
             "1",
         ),
@@ -359,7 +477,7 @@ def test_try_catch_without_params(expression, capsys):
             ["x", ""],
             [
                 ["x += 1;"],
-                ["x = 1;", "test(@x);", "print(x);"],
+                ["a = 1;", "test(@a);", "print(a);"],
             ],
             "2",
         ),
@@ -368,7 +486,7 @@ def test_try_catch_without_params(expression, capsys):
             ["x", ""],
             [
                 ['x.name = "Maciej";'],
-                ['x = Student("John", "Doe", 20);', "test(x);", "print(x.name);"],
+                ['a = Student("John", "Doe", 20);', "test(a);", "print(a.name);"],
             ],
             "John",
         ),
@@ -377,7 +495,7 @@ def test_try_catch_without_params(expression, capsys):
             ["x", ""],
             [
                 ['x.name = "Maciej";'],
-                ['x = Student("John", "Doe", 20);', "test(@x);", "print(x.name);"],
+                ['a = Student("John", "Doe", 20);', "test(@a);", "print(a.name);"],
             ],
             "Maciej",
         ),
@@ -386,7 +504,7 @@ def test_try_catch_without_params(expression, capsys):
             ["x", ""],
             [
                 ["x.age += 10;"],
-                ['x = Student("John", "Doe", 20);', "test(x);", "print(x.age);"],
+                ['a = Student("John", "Doe", 20);', "test(a);", "print(a.age);"],
             ],
             "20",
         ),
@@ -395,7 +513,7 @@ def test_try_catch_without_params(expression, capsys):
             ["x", ""],
             [
                 ["x.age += 10;"],
-                ['x = Student("John", "Doe", 20);', "test(@x);", "print(x.age);"],
+                ['a = Student("John", "Doe", 20);', "test(@a);", "print(a.age);"],
             ],
             "30",
         ),
@@ -415,15 +533,49 @@ def test_try_catch_without_params(expression, capsys):
             ["test", "main"],
             ["", ""],
             [
-                ['throw Error("Error");'],
+                ['throw Error("Error", 1);'],
                 [
                     block_template("try", "test();"),
                     conditional_template(
-                        "catch", "Error e", 'print("caught ", e.message);'
+                        "catch",
+                        "Error e",
+                        'print("caught ", e.message, " ", e.args.get(0));',
                     ),
                 ],
             ],
-            "caught Error",
+            "caught Error 1",
+        ),
+        (
+            ["test", "main"],
+            ["", ""],
+            [
+                ['throw Error("Error", 1, 2);'],
+                [
+                    block_template("try", "test();"),
+                    conditional_template(
+                        "catch",
+                        "Error e",
+                        'print("caught ", e.message, " ", e.args);',
+                    ),
+                ],
+            ],
+            "caught Error [1, 2]",
+        ),
+        (
+            ["test", "main"],
+            ["", ""],
+            [
+                ["x = 2;", 'throw Error("Error", 1, x);'],
+                [
+                    block_template("try", "test();"),
+                    conditional_template(
+                        "catch",
+                        "Error e",
+                        'print("caught ", e.message, " ", e.args);',
+                    ),
+                ],
+            ],
+            "caught Error [1, 2]",
         ),
     ],
 )
@@ -573,29 +725,73 @@ def test_oneliner_errors(expression, expected):
     "function_names, function_bodies, function_args, expected",
     [
         ([], [], [], RuntimeError),
-        (["test"], ["x = 1"], [], RuntimeError),
+        (["test"], ["x = 1;"], [], RuntimeError),
         (["main"], [""], ["x"], ArgumentError),
-        (["main", "test"], ["test(1)", "x /= 0"], ["", "x"], ValueError),
-        (["main", "test"], ["test(1)", "x %= 0"], ["", "x"], ValueError),
-        (["main", "test"], ["test(1)", ""], ["", ""], ArgumentError),
-        (["main", "test"], ["test()", ""], ["", "x"], ArgumentError),
+        (["main", "test"], ["test(1);", "x /= 0;"], ["", "x"], ValueError),
+        (["main", "test"], ["test(1);", "x %= 0;"], ["", "x"], ValueError),
+        (["main", "test"], ["test(1);", ""], ["", ""], ArgumentError),
+        (["main", "test"], ["test();", ""], ["", "x"], ArgumentError),
         (
             ["main", "test"],
-            ["test()", 'throw ArgumentError("test")'],
+            ["test();", 'throw ArgumentError("test");'],
             ["", ""],
             ArgumentError,
         ),
         (
             ["main", "test"],
-            ["test()", "x += 1"],
+            ["test();", "x += 1;"],
             ["", ""],
             VariableError,
         ),
         (
             ["main", "test"],
-            ["test()", "test()"],
+            ["test();", "test();"],
             ["", ""],
             StackOverflowError,
+        ),
+        (
+            ["main", "test"],
+            [conditional_template("while", "true", "test();"), "break;"],
+            ["", ""],
+            ExpressionError,
+        ),
+        (
+            ["main", "test"],
+            [conditional_template("while", "true", "test();"), "continue;"],
+            ["", ""],
+            ExpressionError,
+        ),
+        (
+            ["main", "test"],
+            [
+                f'x = Array(1,2,3); \n {conditional_template("for", "i : x", "test();")}',
+                "break;",
+            ],
+            ["", ""],
+            ExpressionError,
+        ),
+        (
+            ["main", "test"],
+            [
+                f'x = Array(1,2,3); \n {conditional_template("for", "i : x", "test();")}',
+                "continue;",
+            ],
+            ["", ""],
+            ExpressionError,
+        ),
+        (
+            ["main"],
+            [f'x = Array(1,2,3); \n {conditional_template("for", "x : x", "")}'],
+            [""],
+            VariableError,
+        ),
+        (
+            ["main"],
+            [
+                f'i = "test"; x = Array(1,2,3); \n {conditional_template("for", "i : x", "")}'
+            ],
+            [""],
+            VariableError,
         ),
     ],
 )
@@ -603,7 +799,7 @@ def test_function_call_errors(function_names, function_bodies, function_args, ex
     templates = [
         funcion_template(
             function_name,
-            [f"{function_body}{';' if function_body else ''}"],
+            [f"{function_body}"],
             function_arg,
         )
         for function_name, function_body, function_arg in zip(

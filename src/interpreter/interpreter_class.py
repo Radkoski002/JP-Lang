@@ -413,8 +413,14 @@ class Interpreter(IVisitor):
     def _visit_optional_property_access_expression(
         self, node: OptionalPropertyAccessExpression
     ):
-        self.__evaluate_property_access(node)
-        if self.error_thrown and isinstance(self.error_thrown._value, PropertyError):
+        try:
+            self.__evaluate_property_access(node)
+            if self.error_thrown and isinstance(
+                self.error_thrown._value, PropertyError
+            ):
+                self.error_thrown = None
+                self.result = Value(None)
+        except:
             self.error_thrown = None
             self.result = Value(None)
 
@@ -439,6 +445,8 @@ class Interpreter(IVisitor):
         self.current_environment.loop_depth += 1
         while True:
             node.condition.accept(self)
+            if self.error_thrown:
+                break
             if not self.__consume_result()._value:
                 break
             node.block.accept(self)
@@ -448,14 +456,36 @@ class Interpreter(IVisitor):
             if self.continue_called:
                 self.continue_called = False
             if self.error_thrown:
-                self.current_environment.loop_depth -= 1
-                return
+                break
 
         self.current_environment.loop_depth -= 1
 
     def _visit_for_statement(self, node: ForStatement):
         self.current_environment.loop_depth += 1
+        if (
+            type(node.iterable).__name__ == "IdentifierExpression"
+            and node.iterable.name == node.variable.name
+        ):
+            self.error_thrown = Value(
+                VariableError(
+                    node.position,
+                    f"Cannot use {node.variable.name} as iterator because it's defined as loop",
+                )
+            )
+            return
+
+        for variables in self.current_environment.variables_stack:
+            if node.variable.name in variables:
+                self.error_thrown = Value(
+                    VariableError(
+                        node.position,
+                        f"Variable {node.variable.name} is already defined in this scope",
+                    )
+                )
+                return
         node.iterable.accept(self)
+        if self.error_thrown:
+            return
         iterable = deepcopy(self.__consume_result()._value)
         if not isinstance(iterable, Array):
             self.error_thrown = Value(

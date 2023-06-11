@@ -1,8 +1,10 @@
-main(){
-    try {
-        throw Error("test", 1, 2, 3);
-    } catch (Error e) {
-        print(e.message);
-        print(e.args.get(0));
-    }
+test(a) {
+    a.surname = "Smith";
+    print(a, "\n");
+}
+
+main() {
+    x = Student("John","Doe", 20);
+    test(x);
+    print(x, "\n");
 }
