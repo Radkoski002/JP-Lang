@@ -1,10 +1,11 @@
 from lexer.lexer_class import Lexer
-from program.program_class import Program
 from parser.statement_classes import *
-from lexer.token_class import Token
 from lexer.token_type_enum import TokenType
 from parser.helpers import *
 from parser.parser_error_class import PARSER_ERROR_TYPES, ParserError
+from program.program_class import Program
+from lexer.token_class import Token
+from interpreter.built_in_functions import BuiltInFunction, get_built_in_functions
 
 
 class Parser:
@@ -177,9 +178,9 @@ class Parser:
             return None
         if not self.__consume_if(TokenType.T_TYPE_CHECK):
             return expression
+        type_token = self.current_token
         self.__expect_token_type(TokenType.T_IDENTIFIER)
-        type_name = self.current_token.value
-        self.__next_token()
+        type_name = type_token.value
         return TypeCheckExpression(expression, type_name, position)
 
     def __parse_negation_expression(self) -> IExpression:
@@ -447,11 +448,11 @@ class Parser:
         block = self.__expect_block()
         if functions.get(name):
             self.__add_error(PARSER_ERROR_TYPES.FUNCTION_ALREADY_EXIST)
-        functions[name] = FunctionDef(parameters, block, position)
+        functions[name] = FunctionDef(name, parameters, block, position)
         return True
 
     def parse(self) -> Program:
-        functions: dict[str, FunctionDef] = {}
+        functions: dict[str, FunctionDef | BuiltInFunction] = get_built_in_functions()
         while self.__parse_func_def(functions):
             pass
         return Program(functions)

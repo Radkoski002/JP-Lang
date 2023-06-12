@@ -13,3 +13,10 @@ addTwoVariablesWithDefaultParameters(first, second? = 0) {
     return first + second;
 }
 
+main() {
+    print(addTwoVariables(1, 2), "\n");
+    print(addTwoVariablesWithOptionalParameters(1), "\n");
+    print(addTwoVariablesWithOptionalParameters(1, 2), "\n");
+    print(addTwoVariablesWithDefaultParameters(1), "\n");
+    print(addTwoVariablesWithDefaultParameters(1, 2), "\n");
+}

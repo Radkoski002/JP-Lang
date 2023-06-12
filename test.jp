@@ -1,0 +1,10 @@
+test(a) {
+    a.surname = "Smith";
+    print(a, "\n");
+}
+
+main() {
+    x = Student("John","Doe", 20);
+    test(x);
+    print(x, "\n");
+}

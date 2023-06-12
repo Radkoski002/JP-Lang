@@ -1,4 +1,10 @@
+from __future__ import annotations
 from utils.position_class import Position
+
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from interpreter.visitor_interface import IVisitor
 
 
 class IExpression:
@@ -7,6 +13,9 @@ class IExpression:
 
     def __eq__(self, other):
         return type(self) == type(other)
+
+    def accept(self, visitor: IVisitor):
+        visitor.visit(self)
 
 
 class InfixExpression(IExpression):
@@ -241,6 +250,9 @@ class IStatement:
     def __eq__(self, other):
         return type(self) == type(other)
 
+    def accept(self, visitor: IVisitor):
+        visitor.visit(self)
+
 
 class BlockStatement:
     def __init__(self, statements: list[IStatement], position: Position = None) -> None:
@@ -251,6 +263,9 @@ class BlockStatement:
         if isinstance(other, BlockStatement):
             return self.statements == other.statements
         return False
+
+    def accept(self, visitor: IVisitor):
+        return visitor.visit(self)
 
 
 class ConditionalStatement(IStatement):
@@ -281,7 +296,7 @@ class IfStatement(ConditionalStatement):
         position: Position = None,
     ) -> None:
         super().__init__(condition, block, position)
-        self.elif_statements: list[BlockStatement] = elif_statements
+        self.elif_statements: list[ConditionalStatement] = elif_statements
         self.else_statement: BlockStatement = else_statement
 
     def __eq__(self, other):
@@ -301,13 +316,13 @@ class WhileStatement(ConditionalStatement):
 class ForStatement(IStatement):
     def __init__(
         self,
-        variable_name: str,
+        variable: IdentifierExpression,
         iterable: IExpression,
         block: BlockStatement,
         position: Position = None,
     ) -> None:
         super().__init__(position)
-        self.variable_name: str = variable_name
+        self.variable: IdentifierExpression = variable
         self.iterable: IExpression = iterable
         self.block: BlockStatement = block
 
@@ -315,7 +330,7 @@ class ForStatement(IStatement):
         if isinstance(other, ForStatement):
             return (
                 super().__eq__(other)
-                and self.variable_name == other.variable_name
+                and self.variable == other.variable
                 and self.iterable == other.iterable
                 and self.block == other.block
             )
@@ -338,7 +353,7 @@ class ReturnStatement(IStatement):
 class AssignmentStatement(IStatement):
     def __init__(
         self,
-        variable: IdentifierExpression,
+        variable: PropertyAccessExpression | OptionalPropertyAccessExpression,
         expression: IExpression,
         position: Position = None,
     ) -> None:
@@ -480,13 +495,16 @@ class Argument:
             return self.value == other.value and self.is_reference == other.is_reference
         return False
 
+    def accept(self, visitor: IVisitor) -> None:
+        visitor.visit(self)
+
 
 class Parameter:
     def __init__(
         self,
         name: str,
         is_optional: bool = False,
-        value: LiteralExpression = None,
+        value: LiteralExpression = NullLiteral(),
         position: Position = None,
     ) -> None:
         self.name: str = name
@@ -503,14 +521,19 @@ class Parameter:
             )
         return False
 
+    def accept(self, visitor: IVisitor) -> None:
+        visitor.visit(self)
+
 
 class FunctionDef:
     def __init__(
         self,
+        name: str,
         parameters: list[Parameter],
         block: BlockStatement,
         position: Position = None,
     ) -> None:
+        self.name: str = name
         self.parameters: list[Parameter] = parameters
         self.block: BlockStatement = block
         self.position: Position = position
@@ -519,3 +542,6 @@ class FunctionDef:
         if isinstance(other, FunctionDef):
             return self.parameters == other.parameters and self.block == other.block
         return False
+
+    def accept(self, visitor: IVisitor):
+        return visitor.visit(self)

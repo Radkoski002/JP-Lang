@@ -2,33 +2,33 @@ addOneToPositiveNum(x) {
     if(x < 0) {
         throw ArgumentError("Argument x cannot be negative. Value of x is: ", x);
     }
-    elif(!(x is int)) {
+    elif(!(x is Int)) {
         throw TypeError("Argument x must be of type int. Value of x is: ", x);
     }
     return x + 1;
 }
 
 main(){
-    try {
-        print(addOneToPositiveNum(-1));
+     try {
+        print(addOneToPositiveNum(-1), "\n");
     } catch {
-        print("Something went wrong...");
+        print("Something went wrong...\n");
     }
 
     try {
         print(addOneToPositiveNum(-1));
     } catch (Error e) {
-        print("Something went wrong...");
-        print("Error message: ", e?.msg);
-        print("Error arguments: ", e?.arg);
+        print("Something went wrong...\n");
+        print("Error message: ", e?.message, "\n");
+        print("Error arguments: ", e?.args, "\n");
     }
 
     try {
         print(addOneToPositiveNum(-1));
     } 
     catch (ArgumentError e) {
-        if (e?.arg is int) {
-            print(addOneToPositiveNum(e?.arg * -1));
+        if (e?.args?.get(0) is Int) {
+            print(addOneToPositiveNum(-e?.args?.get(0)), "\n");
         }
     }
 
@@ -36,8 +36,8 @@ main(){
         print(addOneToPositiveNum());
     } 
     catch (ArgumentError | TypeError e) {
-        print("There was an error with arguments");
-        print("Error message: ", e?.msg);
-        print("Error arguments: ", e?.arg);
+        print("There was an error with arguments\n");
+        print("Error message: ", e?.message, "\n");
+        print("Error arguments: ", e?.args, "\n");
     }
 }

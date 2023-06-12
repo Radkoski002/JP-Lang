@@ -2,16 +2,16 @@ fizzBuzz(n) {
     index = 1;
     while (index <= n) {
         if (index % 3 == 0 & index % 5 == 0) {
-            print("FizzBuzz");
+            print("FizzBuzz\n");
         } elif (index % 3 == 0) {
-            print("Fizz");
+            print("Fizz\n");
         } elif (index % 5 == 0) {
-            print("Buzz");
+            print("Buzz\n");
         } else {
-            print(index);
+            print(index, "\n");
         }
+        index += 1;
     }
-    index += 1;
 }
 
 main() {

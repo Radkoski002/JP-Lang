@@ -7,3 +7,6 @@ class Program:
 
     def __eq__(self, other):
         return self.functions == other.functions
+
+    def accept(self, visitor):
+        return visitor.visit_program(self)
